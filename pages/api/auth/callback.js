@@ -35,8 +35,10 @@ export default async function handler(req, res) {
     res.writeHead(302, { Location: '/servers' });
     res.end();
   } catch (err) {
-    console.error('OAuth callback failed:', err.message);
-    res.writeHead(302, { Location: '/?error=login_failed' });
-    res.end();
+    console.error('OAuth callback failed:', err);
+    // Surfaced directly instead of a generic redirect, so a misconfigured
+    // env var or a Discord API error is visible without digging through
+    // Vercel's Runtime Logs.
+    res.status(500).send(`Login could not complete: ${err.message}`);
   }
 };
