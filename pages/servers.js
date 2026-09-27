@@ -1,6 +1,8 @@
 import { getSession } from '../lib/session';
 import { fetchManageableMutualGuilds, guildIconUrl } from '../lib/discord';
 import { isOwner } from '../lib/owner';
+import { useLanguage } from '../lib/i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -25,47 +27,60 @@ export async function getServerSideProps({ req }) {
 }
 
 export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
+  const { t } = useLanguage();
   const avatarUrl = user.avatar
     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`
     : null;
 
   return (
     <div className="shell">
-      <div className="topline">
-        <div className="brand">Crossover <span>Dashboard</span></div>
-        <div className="user-chip">
-          {avatarUrl && <img src={avatarUrl} alt="" />}
-          {user.username}
-          <a href="/api/auth/logout">Sign out</a>
+      <div className="topline fade-in-down">
+        <div className="brand">
+          Crossover <span>{t.brandSuffix}</span>
+        </div>
+        <div className="topline-right">
+          <LanguageSwitcher />
+          <div className="user-chip">
+            {avatarUrl && <img src={avatarUrl} alt="" />}
+            {user.username}
+            <a href="/api/auth/logout">{t.signOut}</a>
+          </div>
         </div>
       </div>
 
-      <h1>Your servers</h1>
-      <p className="lede">Servers where you can manage settings and the bot is already a member.</p>
+      <h1 className="fade-in-up d1">{t.yourServers}</h1>
+      <p className="lede fade-in-up d2">{t.yourServersLede}</p>
 
       {showOwnerLinks && (
-        <p style={{ marginTop: -20, marginBottom: 32 }}>
-          <a href="/owner/blocklist" style={{ fontSize: 15 }}>🔒 Owner: view block list</a>
+        <p className="owner-link fade-in-up d2">
+          <a href="/owner/blocklist">{t.ownerBlocklistLink}</a>
         </p>
       )}
 
-      {loadError && <div className="banner error">Couldn&apos;t load your servers: {loadError}</div>}
+      {loadError && (
+        <div className="banner error fade-in-up">
+          {t.couldNotLoad} {loadError}
+        </div>
+      )}
 
       {!loadError && guilds.length === 0 && (
-        <p className="empty">
-          No matching servers found. Either you don&apos;t manage any server the bot is in, or the
-          bot hasn&apos;t been invited yet — use <code>!invite</code> in Discord to add it.
+        <p className="empty fade-in-up">
+          {t.noServersFoundPre} <code>!invite</code> {t.noServersFoundPost}
         </p>
       )}
 
       <ul className="guild-list">
-        {guilds.map((g) => (
-          <li key={g.id}>
-            <a href={`/servers/${g.id}`} style={{ textDecoration: 'none' }}>
+        {guilds.map((g, i) => (
+          <li key={g.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 10) * 0.05}s` }}>
+            <a href={`/servers/${g.id}`} className="guild-link">
               <div className="guild-row">
-                {g.icon ? <img src={g.icon} alt="" /> : <div className="guild-fallback">{g.name.slice(0, 1)}</div>}
+                {g.icon ? (
+                  <img src={g.icon} alt="" />
+                ) : (
+                  <div className="guild-fallback">{g.name.slice(0, 1)}</div>
+                )}
                 <div className="name">{g.name}</div>
-                <span style={{ color: 'var(--muted)', fontSize: 15 }}>Manage</span>
+                <span className="manage-tag">{t.manage} →</span>
               </div>
             </a>
           </li>

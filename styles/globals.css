@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=Cairo:wght@400;600;700;800&display=swap');
 
 /* ── Tokens ───────────────────────────────────────────────────────────────
    Brand green (#3ff17e) + black, executed as an actual pixel-game control
@@ -8,9 +8,11 @@
 :root {
   --bg: #0a0a0a;
   --panel: #10140f;
+  --panel-hi: #141a12;
   --line: #24352c;
   --accent: #3ff17e;
   --accent-deep: #1f9a52;
+  --accent-soft: rgba(63, 241, 126, 0.18);
   --ink: #eafff1;
   --muted: #7ea892;
   --danger: #ff5c5c;
@@ -30,6 +32,7 @@
 html, body {
   margin: 0;
   padding: 0;
+  min-height: 100%;
   background:
     radial-gradient(rgba(63, 241, 126, 0.06) 1px, transparent 1px) 0 0 / 18px 18px,
     var(--bg);
@@ -37,6 +40,29 @@ html, body {
   font-family: 'VT323', 'IBM Plex Mono', monospace;
   font-size: 20px;
   line-height: 1.5;
+}
+
+/* Faint animated scanline sweep for CRT texture — subtle, not distracting. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(63, 241, 126, 0.03) 50%,
+    transparent 100%
+  );
+  background-size: 100% 6px;
+  animation: scan 9s linear infinite;
+  opacity: 0.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none; }
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
 }
 
 code, .mono { font-family: 'VT323', monospace; }
@@ -55,15 +81,24 @@ a:hover { text-decoration: underline; }
   max-width: 760px;
   margin: 0 auto;
   padding: 40px 20px 96px;
+  position: relative;
+  z-index: 1;
 }
 
 .topline {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   margin-bottom: 36px;
   padding-bottom: 16px;
   border-bottom: 2px solid var(--line);
+}
+
+.topline-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
 }
 
 .brand {
@@ -72,8 +107,35 @@ a:hover { text-decoration: underline; }
   letter-spacing: 0.02em;
   color: var(--ink);
   text-shadow: 3px 3px 0 var(--accent-deep);
+  transition: text-shadow 0.2s ease;
 }
 .brand span { color: var(--accent); }
+
+/* ── Language switcher: two pixel-tabs, active one lit ─────────────────── */
+.lang-switch {
+  display: flex;
+  border: 2px solid var(--line);
+  clip-path: var(--pixel-frame);
+  --notch: 4px;
+  background: var(--panel);
+}
+.lang-switch button {
+  font-family: 'Cairo', 'VT323', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  padding: 7px 12px;
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.lang-switch button + button { border-inline-start: 2px solid var(--line); }
+.lang-switch button:hover { color: var(--ink); }
+.lang-switch button.active {
+  color: #041008;
+  background: var(--accent);
+}
 
 .user-chip {
   display: flex;
@@ -103,8 +165,52 @@ h2 {
 }
 p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px; }
 
-.hero { padding: 56px 0 40px; text-align: left; }
-.hero h1 { font-size: 28px; max-width: 11ch; }
+.page-title { margin-top: 12px; }
+.back-link { display: inline-block; font-size: 16px; color: var(--muted); }
+.back-link:hover { color: var(--accent); }
+.owner-link { margin-top: -20px; margin-bottom: 32px; font-size: 15px; }
+.no-top { margin-top: 0; }
+.muted-inline { color: var(--muted); }
+
+/* ── Hero: layered glow + faint grid drifting behind the headline ──────── */
+.hero { position: relative; padding: 56px 0 40px; text-align: left; overflow: hidden; }
+.hero h1 { font-size: 28px; max-width: 12ch; position: relative; }
+.hero .lede { position: relative; }
+.kicker {
+  position: relative;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+}
+.hero-glow {
+  position: absolute;
+  top: -120px;
+  inset-inline-start: -80px;
+  width: 420px;
+  height: 420px;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 70%);
+  filter: blur(4px);
+  animation: pulseGlow 5s ease-in-out infinite;
+  pointer-events: none;
+}
+.hero-grid {
+  position: absolute;
+  inset: -20px -20px auto auto;
+  width: 260px;
+  height: 260px;
+  background-image:
+    linear-gradient(var(--line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--line) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.35;
+  mask-image: radial-gradient(circle, black, transparent 75%);
+  -webkit-mask-image: radial-gradient(circle, black, transparent 75%);
+  animation: driftGrid 14s linear infinite;
+  pointer-events: none;
+}
 
 /* ── Buttons: chunky, notched, physically "press" on click ────────────── */
 .btn {
@@ -121,7 +227,7 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
   clip-path: var(--pixel-frame);
   box-shadow: 4px 4px 0 #000;
   cursor: pointer;
-  transition: transform 0.05s, box-shadow 0.05s;
+  transition: transform 0.05s, box-shadow 0.15s, filter 0.15s;
 }
 .btn:hover { background: var(--accent); filter: brightness(1.08); text-decoration: none; }
 .btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #000; }
@@ -133,9 +239,11 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
   border: 2px solid var(--line);
 }
 .btn.secondary:hover { border-color: var(--accent); }
+.btn.glow:hover { box-shadow: 4px 4px 0 #000, 0 0 22px var(--accent-soft); }
 
 /* ── Server list ─────────────────────────────────────────────────────── */
 .guild-list { list-style: none; margin: 0; padding: 0; }
+.guild-link { text-decoration: none; display: block; }
 .guild-row {
   display: flex;
   align-items: center;
@@ -145,9 +253,15 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
   clip-path: var(--pixel-frame);
   margin-bottom: 12px;
   background: var(--panel);
-  transition: border-color 0.1s;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-.guild-row:hover { border-color: var(--accent); }
+.guild-row:hover {
+  border-color: var(--accent);
+  transform: translateX(4px);
+  box-shadow: -4px 0 0 var(--accent);
+  background: var(--panel-hi);
+}
+[dir="rtl"] .guild-row:hover { transform: translateX(-4px); box-shadow: 4px 0 0 var(--accent); }
 .guild-row img, .guild-fallback {
   width: 36px; height: 36px;
   image-rendering: pixelated;
@@ -157,6 +271,8 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
   font-size: 15px; color: var(--accent); font-weight: 600;
 }
 .guild-row .name { font-size: 19px; flex: 1; }
+.manage-tag { color: var(--muted); font-size: 15px; transition: color 0.15s ease; }
+.guild-row:hover .manage-tag { color: var(--accent); }
 
 /* ── Form fields ─────────────────────────────────────────────────────── */
 .field { margin-bottom: 28px; }
@@ -177,16 +293,19 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
   padding: 10px 12px;
   font-size: 18px;
   font-family: 'VT323', monospace;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .field input[type="text"]:focus, .field select:focus {
   outline: 3px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
 }
+.field input[type="text"]:hover, .field select:hover { border-color: var(--accent-deep); }
 
 /* ── Toggle switch: a pixel block, not a rounded pill ───────────────── */
 .toggle-row {
   display: flex; align-items: center; justify-content: space-between;
+  gap: 16px;
   padding: 16px 0; border-top: 2px solid var(--line);
 }
 .toggle-row:last-child { border-bottom: 2px solid var(--line); }
@@ -197,14 +316,18 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
   position: absolute; inset: 0;
   background: var(--panel); border: 2px solid var(--line);
   border-radius: 0; cursor: pointer;
+  transition: border-color 0.15s ease;
 }
 .switch .track::after {
   content: '';
   position: absolute; left: 3px; top: 3px; width: 16px; height: 16px;
   background: var(--muted);
+  transition: transform 0.18s ease, background 0.18s ease;
 }
-.switch input:checked + .track { border-color: var(--accent); }
+.switch input:checked + .track { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-soft); }
 .switch input:checked + .track::after { transform: translateX(20px); background: var(--accent); }
+[dir="rtl"] .switch .track::after { left: auto; right: 3px; }
+[dir="rtl"] .switch input:checked + .track::after { transform: translateX(-20px); }
 
 /* ── Banners ─────────────────────────────────────────────────────────── */
 .banner {
@@ -227,15 +350,85 @@ p.lede { color: var(--muted); margin: 0 0 32px; max-width: 48ch; font-size: 18px
 .stat-box {
   flex: 1; background: var(--panel); border: 2px solid var(--line);
   clip-path: var(--pixel-frame); padding: 18px; text-align: center;
+  transition: border-color 0.15s ease, transform 0.15s ease;
 }
+.stat-box:hover { border-color: var(--accent); transform: translateY(-2px); }
 .stat-num { font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--accent); text-shadow: 2px 2px 0 #000; }
 .stat-label { font-size: 15px; color: var(--muted); margin-top: 8px; }
 
 /* ── Leaderboard / block-list tables ────────────────────────────────── */
 table.board { width: 100%; border-collapse: collapse; font-size: 18px; }
-table.board tr { border-top: 2px solid var(--line); }
+table.board tr { border-top: 2px solid var(--line); transition: background 0.15s ease; }
+table.board tr:hover { background: rgba(63, 241, 126, 0.04); }
 table.board td { padding: 10px 8px; }
 table.board .rank { color: var(--accent); width: 32px; font-family: 'Press Start 2P', monospace; font-size: 11px; }
 table.board .name { font-size: 18px; }
 table.board .pts { color: var(--accent); text-align: right; white-space: nowrap; }
 table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
+[dir="rtl"] table.board .pts,
+[dir="rtl"] table.board .wl { text-align: left; }
+
+/* ── Animations ──────────────────────────────────────────────────────── */
+@keyframes scan {
+  0% { background-position: 0 0; }
+  100% { background-position: 0 120px; }
+}
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes driftGrid {
+  0% { background-position: 0 0; }
+  100% { background-position: 220px 220px; }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.fade-in-down {
+  animation: fadeInDown 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.fade-in-up.d1 { animation-delay: 0.05s; }
+.fade-in-up.d2 { animation-delay: 0.12s; }
+.fade-in-up.d3 { animation-delay: 0.19s; }
+.fade-in-up.d4 { animation-delay: 0.26s; }
+
+.stagger-in {
+  animation: fadeInUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+/* ── RTL / Arabic type system ───────────────────────────────────────────
+   Press Start 2P and VT323 have no Arabic glyphs, so Arabic mode swaps in
+   Cairo (a clean geometric sans) for both display and body text, while
+   keeping every color, spacing and pixel-frame shape from the theme. */
+[dir="rtl"] body {
+  font-family: 'Cairo', 'Tahoma', sans-serif;
+}
+[dir="rtl"] .brand,
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] .btn,
+[dir="rtl"] .stat-num,
+[dir="rtl"] .kicker,
+[dir="rtl"] .field label,
+[dir="rtl"] table.board .rank {
+  font-family: 'Cairo', 'Tahoma', sans-serif;
+  font-weight: 700;
+}
+[dir="rtl"] .lang-switch button { font-weight: 700; }
+[dir="rtl"] p.lede,
+[dir="rtl"] .field input[type="text"],
+[dir="rtl"] .field select,
+[dir="rtl"] .hint,
+[dir="rtl"] .empty,
+[dir="rtl"] table.board .name {
+  font-family: 'Cairo', 'Tahoma', sans-serif;
+}

@@ -1,10 +1,6 @@
 import { getSession } from '../lib/session';
-
-const ERROR_MESSAGES = {
-  invalid_state: 'That login link expired — try again.',
-  login_failed: 'Discord could not verify that login — try again.',
-  access_denied: 'Login was cancelled.',
-};
+import { useLanguage } from '../lib/i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export async function getServerSideProps({ req, query }) {
   const session = await getSession(req);
@@ -13,21 +9,30 @@ export async function getServerSideProps({ req, query }) {
 }
 
 export default function Home({ error }) {
+  const { t } = useLanguage();
+
   return (
     <div className="shell">
-      <div className="topline">
-        <div className="brand">Crossover <span>Dashboard</span></div>
+      <div className="topline fade-in-down">
+        <div className="brand">
+          Crossover <span>{t.brandSuffix}</span>
+        </div>
+        <LanguageSwitcher />
       </div>
 
-      {error && <div className="banner error">{ERROR_MESSAGES[error] || 'Something went wrong logging in.'}</div>}
+      {error && (
+        <div className="banner error fade-in-up">{t.errors[error] || t.errors.generic}</div>
+      )}
 
       <div className="hero">
-        <h1>Run your servers without typing commands.</h1>
-        <p className="lede">
-          Sign in with the Discord account that manages your server, and change the prefix, the
-          game room, the language and cross-server play from a form instead of `!settings`.
-        </p>
-        <a className="btn" href="/api/auth/login">Sign in with Discord</a>
+        <div className="hero-glow" aria-hidden="true" />
+        <div className="hero-grid" aria-hidden="true" />
+        <p className="kicker fade-in-up d1">{t.heroKicker}</p>
+        <h1 className="fade-in-up d2">{t.heroTitle}</h1>
+        <p className="lede fade-in-up d3">{t.heroLede}</p>
+        <a className="btn glow fade-in-up d4" href="/api/auth/login">
+          {t.signIn}
+        </a>
       </div>
     </div>
   );

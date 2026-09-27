@@ -1,6 +1,8 @@
 import { getSession } from '../../lib/session';
 import { isOwner } from '../../lib/owner';
 import { getAllBlocks } from '../../lib/redis';
+import { useLanguage } from '../../lib/i18n';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -21,33 +23,37 @@ export async function getServerSideProps({ req }) {
 }
 
 export default function OwnerBlocklist({ user, blocks, total }) {
+  const { t } = useLanguage();
+
   return (
     <div className="shell">
-      <div className="topline">
-        <div className="brand">Crossover <span>Dashboard</span></div>
-        <div className="user-chip">
-          {user.username}
-          <a href="/api/auth/logout">Sign out</a>
+      <div className="topline fade-in-down">
+        <div className="brand">
+          Crossover <span>{t.brandSuffix}</span>
+        </div>
+        <div className="topline-right">
+          <LanguageSwitcher />
+          <div className="user-chip">
+            {user.username}
+            <a href="/api/auth/logout">{t.signOut}</a>
+          </div>
         </div>
       </div>
 
-      <a href="/servers" style={{ fontSize: 16, color: 'var(--muted)' }}>← All servers</a>
-      <h1 style={{ marginTop: 12 }}>Block list</h1>
-      <p className="lede">
-        Every personal block currently in effect, across every server — read-only. A block isn&apos;t
-        tied to any one server, so this lives here instead of on a server&apos;s own settings page.
-      </p>
+      <a href="/servers" className="back-link fade-in-up">← {t.allServers}</a>
+      <h1 className="page-title fade-in-up d1">{t.blocklistTitle}</h1>
+      <p className="lede fade-in-up d1">{t.blocklistLede}</p>
 
       {blocks.length === 0 ? (
-        <div className="empty">No one has blocked anyone yet.</div>
+        <div className="empty fade-in-up d2">{t.noBlocks}</div>
       ) : (
-        <table className="board">
+        <table className="board fade-in-up d2">
           <tbody>
-            {blocks.map((b) => (
-              <tr key={`${b.blockerId}-${b.blockedId}`}>
+            {blocks.map((b, i) => (
+              <tr key={`${b.blockerId}-${b.blockedId}`} className="stagger-in" style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }}>
                 <td className="name">
                   <code>{b.blockerId}</code>
-                  <span style={{ color: 'var(--muted)' }}> blocked </span>
+                  <span className="muted-inline"> {t.blocked} </span>
                   {b.blockedUsername ? `@${b.blockedUsername}` : <code>{b.blockedId}</code>}
                 </td>
                 <td className="wl">{b.at ? new Date(b.at).toLocaleDateString() : '—'}</td>
@@ -57,9 +63,7 @@ export default function OwnerBlocklist({ user, blocks, total }) {
         </table>
       )}
 
-      {total > blocks.length && (
-        <div className="hint">{total} blocks total — showing the most recent {blocks.length}.</div>
-      )}
+      {total > blocks.length && <div className="hint">{t.blocksTotal(total, blocks.length)}</div>}
     </div>
   );
 }
