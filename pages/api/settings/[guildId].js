@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       const [settings, channels] = await Promise.all([getGuildSettings(guildId), fetchGuildTextChannels(guildId)]);
       const [roomResult, automodResult] = await Promise.allSettled([
         getGameRoomHealth(guildId, settings),
-        fetchGuildAutoModStatus(guildId),
+        fetchGuildAutoModStatus(guildId, session.accessToken),
       ]);
       return res.status(200).json({
         settings,
@@ -119,7 +119,7 @@ export default async function handler(req, res) {
       const settings = await getGuildSettings(guildId);
       const [roomResult, automodResult] = await Promise.allSettled([
         getGameRoomHealth(guildId, settings),
-        fetchGuildAutoModStatus(guildId),
+        fetchGuildAutoModStatus(guildId, session.accessToken),
       ]);
       return res.status(200).json({
         settings,

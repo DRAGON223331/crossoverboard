@@ -93,3 +93,13 @@ Discord Developer Portal.
 - Login sessions last 7 days (matching Discord's own access-token lifetime)
   with no refresh-token flow yet — after 7 days you'll need to sign in
   again.
+
+
+## Discord permissions required
+
+The dashboard uses two different identities:
+
+- **Logged-in user OAuth token:** used for checking that the user can manage the guild and for reading AutoMod rules. The user must have **Manage Server** or **Administrator**. Discord documents AutoMod access as requiring Manage Server/Administrator.
+- **Bot token:** used to inspect the bot's member roles, channel permissions, list channels, rename/create the game room, and perform bot-side operations.
+
+The game-room health check resolves the bot's actual user ID through `/users/@me` before requesting `/guilds/{guildId}/members/{botUserId}`. It does not use `/members/@me`, which Discord rejects for this endpoint.
