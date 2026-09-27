@@ -2,7 +2,7 @@ import '../styles/globals.css';
 import { useEffect, useState } from 'react';
 import { LanguageProvider } from '../lib/i18n';
 
-function StartupOverlay() {
+function StartupOverlay({ onComplete }) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -11,16 +11,22 @@ function StartupOverlay() {
       const alreadyShown = window.sessionStorage.getItem('cx-startup-seen');
       if (alreadyShown) {
         setVisible(false);
+        onComplete();
         return;
       }
       window.sessionStorage.setItem('cx-startup-seen', '1');
     } catch {
-      // If storage is unavailable, still show the animation once for this load.
+      // If storage is unavailable, still show the animation for this load.
     }
 
-    timer = window.setTimeout(() => setVisible(false), 1050);
+    // The dashboard stays unmounted until the intro has completely finished.
+    timer = window.setTimeout(() => {
+      setVisible(false);
+      onComplete();
+    }, 1250);
+
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [onComplete]);
 
   if (!visible) return null;
 
@@ -43,10 +49,13 @@ function StartupOverlay() {
 }
 
 export default function App({ Component, pageProps }) {
+  const [siteVisible, setSiteVisible] = useState(false);
+  const completeStartup = () => setSiteVisible(true);
+
   return (
     <LanguageProvider>
-      <StartupOverlay />
-      <Component {...pageProps} />
+      <StartupOverlay onComplete={completeStartup} />
+      {siteVisible && <Component {...pageProps} />}
     </LanguageProvider>
   );
 }

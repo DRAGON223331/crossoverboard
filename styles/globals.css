@@ -192,6 +192,7 @@ p.lede { color: var(--muted); margin: 0 0 28px; max-width: 56ch; font-size: 15.5
   background: var(--accent-soft);
 }
 .hero-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.hero-actions .btn { min-width: 150px; justify-content: center; }
 .hero-glow {
   position: absolute;
   top: -160px;
@@ -701,7 +702,7 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
   place-items: center;
   overflow: hidden;
   background: #07090c;
-  animation: startupOverlayOut .35s ease 0.82s forwards;
+  animation: startupOverlayOut .35s ease 0.90s forwards;
   pointer-events: none;
 }
 .startup-grid {
