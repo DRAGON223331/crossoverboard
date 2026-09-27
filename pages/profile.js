@@ -270,7 +270,10 @@ export default function Profile({ user, guildCount, owner, profile }) {
       <div className="profile-actions fade-in-up d4">
         <a className="btn glow" href="/servers">{t.goToServers}</a>
         {owner && (
-          <a className="btn secondary" href="/owner/blocklist">{t.ownerBlocklistLink}</a>
+          <>
+            <a className="btn secondary" href="/owner/blocklist">{t.ownerBlocklistLink}</a>
+            <a className="btn secondary" href="/owner/inventory">{t.ownerInventoryLink}</a>
+          </>
         )}
       </div>
     </div>
