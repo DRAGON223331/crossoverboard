@@ -20,11 +20,11 @@ function StartupOverlay({ onComplete }) {
       // If storage is unavailable, still show the animation for this load.
     }
 
-    // The dashboard stays unmounted until the intro has completely finished.
+    // Keep the intro short so it does not feel like page/network latency.
     timer = window.setTimeout(() => {
       setVisible(false);
       onComplete();
-    }, 1250);
+    }, 350);
 
     return () => window.clearTimeout(timer);
   }, [onComplete]);

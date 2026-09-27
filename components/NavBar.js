@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { useLanguage } from '../lib/i18n';
 import Notifications from './Notifications';
 import ThemeToggle from './ThemeToggle';
@@ -15,13 +16,14 @@ export default function NavBar({ active }) {
   return (
     <nav className="site-nav fade-in-down">
       {items.map((item) => (
-        <a
+        <Link
           key={item.key}
           href={item.href}
+          prefetch
           className={`site-nav-link${active === item.key ? ' active' : ''}`}
         >
           {item.label}
-        </a>
+        </Link>
       ))}
       <div className="nav-tools">
         <Notifications />

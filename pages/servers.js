@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { getSession } from '../lib/session';
 import { fetchManageableMutualGuilds, guildIconUrl } from '../lib/discord';
 import { isOwner } from '../lib/owner';
@@ -49,10 +50,10 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
             <LanguageSwitcher />
           </div>
           <div className="user-chip">
-            <a href="/profile" className="user-link">
+            <Link href="/profile" prefetch className="user-link">
               {avatarUrl32 && <img src={avatarUrl32} alt="" />}
               {user.username}
-            </a>
+            </Link>
             <a href="/api/auth/logout">{t.signOut}</a>
           </div>
         </div>
@@ -60,7 +61,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
 
       <NavBar active="servers" />
 
-      <a href="/profile" className="profile-card profile-card-link fade-in-up d1">
+      <Link href="/profile" prefetch className="profile-card profile-card-link fade-in-up d1">
         {avatarUrl96 ? (
           <img src={avatarUrl96} alt="" className="profile-avatar" />
         ) : (
@@ -82,14 +83,14 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
           </div>
         </div>
         <span className="profile-card-arrow">{t.viewProfile} →</span>
-      </a>
+      </Link>
 
       <h1 className="fade-in-up d1">{t.yourServers}</h1>
       <p className="lede fade-in-up d2">{t.yourServersLede}</p>
 
       {showOwnerLinks && (
         <p className="owner-link fade-in-up d2">
-          <a href="/owner/blocklist">{t.ownerBlocklistLink}</a>
+          <Link href="/owner/blocklist" prefetch>{t.ownerBlocklistLink}</Link>
         </p>
       )}
 
@@ -108,7 +109,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
       <ul className="server-grid">
         {guilds.map((g, i) => (
           <li key={g.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 12) * 0.04}s` }}>
-            <a href={`/servers/${g.id}`} className="server-card">
+            <Link href={`/servers/${g.id}`} prefetch className="server-card">
               {g.icon ? (
                 <img src={g.icon} alt="" />
               ) : (
@@ -116,7 +117,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
               )}
               <div className="name">{g.name}</div>
               <span className="manage-tag">{t.manage} →</span>
-            </a>
+            </Link>
           </li>
         ))}
       </ul>

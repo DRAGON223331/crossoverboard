@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getSession } from '../../../lib/session';
-import { userCanManageGuild, fetchGuildTextChannels, fetchUserGuilds } from '../../../lib/discord';
+import { fetchGuildTextChannels, fetchUserGuilds } from '../../../lib/discord';
 import { getGuildSettings } from '../../../lib/redis';
 import { useLanguage } from '../../../lib/i18n';
 import LanguageSwitcher from '../../../components/LanguageSwitcher';
@@ -10,15 +10,17 @@ export async function getServerSideProps({ req, params }) {
   if (!session) return { redirect: { destination: '/', permanent: false } };
 
   const { guildId } = params;
-  const allowed = await userCanManageGuild(session.accessToken, guildId);
-  if (!allowed) return { redirect: { destination: '/servers', permanent: false } };
-
+  // Fetch the user's guild list once and reuse it for both authorization and
+  // the display name. The previous flow fetched /users/@me/guilds twice.
   const [settings, channels, userGuilds] = await Promise.all([
     getGuildSettings(guildId),
     fetchGuildTextChannels(guildId),
     fetchUserGuilds(session.accessToken),
   ]);
   const guild = userGuilds.find((g) => g.id === guildId);
+  const permissions = guild ? BigInt(guild.permissions || '0') : 0n;
+  const canManage = guild && ((permissions & 0x8n) === 0x8n || (permissions & 0x20n) === 0x20n);
+  if (!canManage) return { redirect: { destination: '/servers', permanent: false } };
 
   const roomHealth = null;
   const automod = null;
