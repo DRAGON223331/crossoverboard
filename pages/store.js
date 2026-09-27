@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../lib/session';
-import { getUserProfile, getUserInventory } from '../lib/redis';
-import { SKINS, TITLES } from '../lib/storeCatalog';
+import { getUserInventory, getFriends } from '../lib/redis';
+import { SKINS, TITLES, COMING_SOON, emojiUrl } from '../lib/storeCatalog';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -10,37 +10,44 @@ export async function getServerSideProps({ req }) {
   const session = await getSession(req);
   if (!session) return { redirect: { destination: '/', permanent: false } };
 
-  const [profile, inventory] = await Promise.all([
-    getUserProfile(session.user.id),
+  const [inventory, friends] = await Promise.all([
     getUserInventory(session.user.id),
+    getFriends(session.user.id),
   ]);
 
   return {
-    props: {
-      user: session.user,
-      initialPoints: profile?.points ?? 0,
-      initialInventory: inventory,
-    },
+    props: { user: session.user, initialInventory: inventory, initialFriends: friends },
   };
 }
 
-function GiftModal({ item, name, onClose, onSent, t }) {
-  const [targetId, setTargetId] = useState('');
+function SkinPreview({ skin }) {
+  if (!skin) return <span style={{ fontSize: 20 }}>❌ ⭕</span>;
+  return (
+    <span style={{ display: 'inline-flex', gap: 6 }}>
+      <img src={emojiUrl(skin.x)} alt="" width={28} height={28} />
+      <img src={emojiUrl(skin.o)} alt="" width={28} height={28} />
+    </span>
+  );
+}
+
+function GiftModal({ item, name, friends, onClose, onSent, t }) {
+  const [friendId, setFriendId] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
 
   async function send() {
+    if (!friendId) return;
     setSending(true);
     setError(null);
     try {
       const res = await fetch('/api/store', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'gift', itemId: item.id, targetUserId: targetId.trim() }),
+        body: JSON.stringify({ action: 'gift', itemId: item.id, friendId }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.storeGiftFailed);
-      onSent(data.points);
+      onSent(data.buyerPoints);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -53,19 +60,28 @@ function GiftModal({ item, name, onClose, onSent, t }) {
       <div className="store-gift-modal fade-in-up" onClick={(e) => e.stopPropagation()}>
         <h3>{t.storeGiftTitle(name)}</h3>
         <p className="lede" style={{ marginBottom: 14 }}>{t.storeGiftLede}</p>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <input
-            type="text"
-            placeholder={t.storeGiftIdPlaceholder}
-            value={targetId}
-            onChange={(e) => setTargetId(e.target.value)}
-          />
-        </div>
+
+        {friends.length === 0 ? (
+          <div className="banner error">{t.storeNoFriends}</div>
+        ) : (
+          <div className="field" style={{ marginBottom: 0 }}>
+            <select value={friendId} onChange={(e) => setFriendId(e.target.value)}>
+              <option value="">{t.storeGiftChooseFriend}</option>
+              {friends.map((f) => (
+                <option key={f.id} value={f.id}>{f.username ? `@${f.username}` : f.id}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
         {error && <div className="banner error" style={{ marginTop: 14 }}>{error}</div>}
+
         <div className="store-gift-actions">
-          <button type="button" className="btn glow" onClick={send} disabled={sending || !targetId.trim()}>
-            {sending ? t.storeGiftSending : t.storeGiftSend}
-          </button>
+          {friends.length > 0 && (
+            <button type="button" className="btn glow" onClick={send} disabled={sending || !friendId}>
+              {sending ? t.storeGiftSending : t.storeGiftSend}
+            </button>
+          )}
           <button type="button" className="btn secondary" onClick={onClose} disabled={sending}>
             {t.storeGiftCancel}
           </button>
@@ -75,46 +91,39 @@ function GiftModal({ item, name, onClose, onSent, t }) {
   );
 }
 
-function StoreItemCard({ item, points, inventory, t, onBuy, onEquip, onUnequip, onGift, busyId }) {
-  const meta = t.storeItems[item.id] || { name: item.id, desc: '' };
-  const owned = inventory.owned.includes(item.id);
-  const equipped = item.category === 'skin' ? inventory.equippedSkin === item.id : inventory.equippedTitle === item.id;
-  const canAfford = points >= item.price;
-  const busy = busyId === item.id;
+function SkinCard({ id, skin, inventory, t, lang, busyId, onBuy, onEquip, onGift }) {
+  const owned = inventory.items.includes(id);
+  const equipped = inventory.equipped?.xo === id;
+  const name = lang === 'ar' ? skin.ar : skin.en;
+  const busy = busyId === id;
 
   return (
     <article className={`store-item-card fade-in-up${owned ? ' owned' : ''}`}>
-      <div className="store-item-icon">{item.icon}</div>
+      <div className="store-item-icon"><SkinPreview skin={skin} /></div>
       {equipped ? (
         <span className="store-badge equipped">{t.storeEquipped}</span>
       ) : owned ? (
         <span className="store-badge">{t.storeOwned}</span>
       ) : null}
-      <div className="store-item-name">{meta.name}</div>
-      <div className="store-item-desc">{meta.desc}</div>
+      <div className="store-item-name">{name} — XO</div>
       <div className="store-item-footer">
-        <span className="store-item-price">{item.price === 0 ? t.storeFree : `${item.price} ${t.homePoints}`}</span>
+        <span className="store-item-price">{skin.price} {t.storePoints}</span>
         <div className="store-item-actions">
           {owned ? (
             !equipped && (
-              <button type="button" className="btn secondary" disabled={busy} onClick={() => onEquip(item)}>
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onEquip('xo', id)}>
                 {t.storeEquip}
               </button>
             )
           ) : (
             <>
-              <button type="button" className="btn glow" disabled={busy || !canAfford} onClick={() => onBuy(item)}>
-                {busy ? t.storeBuying : canAfford ? t.storeBuy : t.storeNotEnoughPoints}
+              <button type="button" className="btn glow" disabled={busy} onClick={() => onBuy(id)}>
+                {busy ? t.storeBuying : t.storeBuy}
               </button>
-              <button type="button" className="btn secondary" disabled={busy} onClick={() => onGift(item, meta.name)}>
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onGift({ id }, name)}>
                 {t.storeGiftButton}
               </button>
             </>
-          )}
-          {equipped && item.category === 'title' && (
-            <button type="button" className="btn secondary" disabled={busy} onClick={onUnequip}>
-              {t.storeUnequip}
-            </button>
           )}
         </div>
       </div>
@@ -122,62 +131,94 @@ function StoreItemCard({ item, points, inventory, t, onBuy, onEquip, onUnequip, 
   );
 }
 
-export default function Store({ user, initialPoints, initialInventory }) {
-  const { t } = useLanguage();
-  const [tab, setTab] = useState('skins');
-  const [points, setPoints] = useState(initialPoints);
+function TitleCard({ id, title, inventory, t, lang, busyId, onBuy, onEquip, onGift }) {
+  const owned = inventory.items.includes(id);
+  const equipped = inventory.equipped?.title === id;
+  const name = lang === 'ar' ? title.ar : title.en;
+  const busy = busyId === id;
+
+  return (
+    <article className={`store-item-card fade-in-up${owned ? ' owned' : ''}`}>
+      <div className="store-item-icon" style={{ fontSize: 28 }}>{title.icon}</div>
+      {equipped ? (
+        <span className="store-badge equipped">{t.storeEquipped}</span>
+      ) : owned ? (
+        <span className="store-badge">{t.storeOwned}</span>
+      ) : null}
+      <div className="store-item-name">{name}</div>
+      <div className="store-item-footer">
+        <span className="store-item-price">{title.price} {t.storePoints}</span>
+        <div className="store-item-actions">
+          {owned ? (
+            equipped ? (
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onEquip('title', null)}>
+                {t.storeUnequip}
+              </button>
+            ) : (
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onEquip('title', id)}>
+                {t.storeEquip}
+              </button>
+            )
+          ) : (
+            <>
+              <button type="button" className="btn glow" disabled={busy} onClick={() => onBuy(id)}>
+                {busy ? t.storeBuying : t.storeBuy}
+              </button>
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onGift({ id }, name)}>
+                {t.storeGiftButton}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export default function Store({ user, initialInventory, initialFriends }) {
+  const { t, lang } = useLanguage();
   const [inventory, setInventory] = useState(initialInventory);
+  const [friends] = useState(initialFriends);
   const [status, setStatus] = useState(null);
   const [busyId, setBusyId] = useState(null);
-  const [giftTarget, setGiftTarget] = useState(null); // { item, name }
+  const [giftTarget, setGiftTarget] = useState(null); // { item: {id}, name }
 
-  async function handleBuy(item) {
-    setBusyId(item.id);
-    setStatus(null);
-    try {
-      const res = await fetch('/api/store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'buy', itemId: item.id }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t.storeBuyFailed);
-      setInventory(data.inventory);
-      setPoints(data.points);
-      setStatus({ type: 'ok', text: t.storeBuySuccess });
-    } catch (err) {
-      setStatus({ type: 'error', text: err.message });
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function handleEquip(item) {
-    setBusyId(item.id);
-    try {
-      const res = await fetch('/api/store', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'equip', itemId: item.id }),
-      });
-      const data = await res.json();
-      if (res.ok) setInventory(data.inventory);
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function handleUnequipTitle() {
+  async function post(body) {
     const res = await fetch('/api/store', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'unequipTitle' }),
+      body: JSON.stringify(body),
     });
     const data = await res.json();
-    if (res.ok) setInventory(data.inventory);
+    if (!res.ok) throw new Error(data.error);
+    return data;
   }
 
-  const items = tab === 'skins' ? SKINS : TITLES;
+  async function handleBuy(itemId) {
+    setBusyId(itemId);
+    setStatus(null);
+    try {
+      const data = await post({ action: 'buy', itemId });
+      setInventory(data.inventory);
+      setStatus({ type: 'ok', text: t.storeBuySuccess });
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message === 'Not enough points.' ? t.storeNotEnoughPoints : (err.message || t.storeBuyFailed) });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleEquip(slot, itemId) {
+    setBusyId(itemId || slot);
+    try {
+      const data = itemId ? await post({ action: 'equip', itemId }) : await post({ action: 'unequip', slot });
+      setInventory(data.inventory);
+    } catch {
+      // Leave the current state showing rather than clearing it on a network hiccup.
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <div className="shell">
@@ -204,45 +245,50 @@ export default function Store({ user, initialPoints, initialInventory }) {
 
       <div className="store-balance-card fade-in-up d2">
         <span className="store-balance-label">{t.storeBalance}</span>
-        <span className="store-balance-num">{points}</span>
-      </div>
-
-      <div className="tab-row fade-in-up d2">
-        <button type="button" className={`tab${tab === 'skins' ? ' active' : ''}`} onClick={() => setTab('skins')}>
-          {t.storeTabSkins}
-        </button>
-        <button type="button" className={`tab${tab === 'titles' ? ' active' : ''}`} onClick={() => setTab('titles')}>
-          {t.storeTabTitles}
-        </button>
+        <span className="store-balance-num">{inventory.points}</span>
       </div>
 
       {status && <div className={`banner ${status.type}`}>{status.text}</div>}
 
+      <h2 className="fade-in-up d2">{t.storeSectionSkins}</h2>
       <div className="store-grid fade-in-up d3">
-        {items.map((item) => (
-          <StoreItemCard
-            key={item.id}
-            item={item}
-            points={points}
-            inventory={inventory}
-            t={t}
-            busyId={busyId}
-            onBuy={handleBuy}
-            onEquip={handleEquip}
-            onUnequip={handleUnequipTitle}
-            onGift={(it, name) => setGiftTarget({ item: it, name })}
+        <SkinCard
+          id="cross" skin={SKINS.cross} inventory={inventory} t={t} lang={lang} busyId={busyId}
+          onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
+        />
+      </div>
+
+      <h2 className="fade-in-up d2" style={{ marginTop: 28 }}>{t.storeSectionTitles}</h2>
+      <div className="store-grid fade-in-up d3">
+        {Object.entries(TITLES).map(([id, title]) => (
+          <TitleCard
+            key={id} id={id} title={title} inventory={inventory} t={t} lang={lang} busyId={busyId}
+            onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
           />
         ))}
       </div>
+
+      <h2 className="fade-in-up d2" style={{ marginTop: 28 }}>{t.storeSectionComingSoon}</h2>
+      <div className="panel fade-in-up d3">
+        {COMING_SOON.map((c) => (
+          <div key={c.en} className="toggle-row players-locked-row">
+            <div>{c.icon} {lang === 'ar' ? c.ar : c.en}</div>
+            <span className="hint no-top">{t.storeComingSoonNote}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="players-hint">{t.storeFootnote}</p>
 
       {giftTarget && (
         <GiftModal
           item={giftTarget.item}
           name={giftTarget.name}
+          friends={friends}
           t={t}
           onClose={() => setGiftTarget(null)}
-          onSent={(newPoints) => {
-            setPoints(newPoints);
+          onSent={(buyerPoints) => {
+            setInventory((prev) => ({ ...prev, points: buyerPoints }));
             setGiftTarget(null);
             setStatus({ type: 'ok', text: t.storeGiftSuccess });
           }}
