@@ -45,7 +45,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
 
       {showOwnerLinks && (
         <p style={{ marginTop: -20, marginBottom: 32 }}>
-          <a href="/owner/blocklist" style={{ fontSize: 13 }}>🔒 Owner: view block list →</a>
+          <a href="/owner/blocklist" style={{ fontSize: 15 }}>🔒 Owner: view block list</a>
         </p>
       )}
 
@@ -65,7 +65,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
               <div className="guild-row">
                 {g.icon ? <img src={g.icon} alt="" /> : <div className="guild-fallback">{g.name.slice(0, 1)}</div>}
                 <div className="name">{g.name}</div>
-                <span style={{ color: 'var(--muted)', fontSize: 13 }}>Manage →</span>
+                <span style={{ color: 'var(--muted)', fontSize: 15 }}>Manage</span>
               </div>
             </a>
           </li>

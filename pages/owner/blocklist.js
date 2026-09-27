@@ -31,7 +31,7 @@ export default function OwnerBlocklist({ user, blocks, total }) {
         </div>
       </div>
 
-      <a href="/servers" style={{ fontSize: 13, color: 'var(--muted)' }}>← All servers</a>
+      <a href="/servers" style={{ fontSize: 16, color: 'var(--muted)' }}>← All servers</a>
       <h1 style={{ marginTop: 12 }}>Block list</h1>
       <p className="lede">
         Every personal block currently in effect, across every server — read-only. A block isn&apos;t

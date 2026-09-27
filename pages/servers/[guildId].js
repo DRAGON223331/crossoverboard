@@ -72,7 +72,7 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
         </div>
       </div>
 
-      <a href="/servers" style={{ fontSize: 13, color: 'var(--muted)' }}>← All servers</a>
+      <a href="/servers" style={{ fontSize: 16, color: 'var(--muted)' }}>← All servers</a>
       <h1 style={{ marginTop: 12 }}>{guildName}</h1>
       <p className="lede">Changes here go straight to the bot&apos;s database — no restart needed.</p>
 
