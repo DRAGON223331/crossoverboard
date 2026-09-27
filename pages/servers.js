@@ -71,19 +71,17 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
         </p>
       )}
 
-      <ul className="guild-list">
+      <ul className="server-grid">
         {guilds.map((g, i) => (
-          <li key={g.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 10) * 0.05}s` }}>
-            <a href={`/servers/${g.id}`} className="guild-link">
-              <div className="guild-row">
-                {g.icon ? (
-                  <img src={g.icon} alt="" />
-                ) : (
-                  <div className="guild-fallback">{g.name.slice(0, 1)}</div>
-                )}
-                <div className="name">{g.name}</div>
-                <span className="manage-tag">{t.manage} →</span>
-              </div>
+          <li key={g.id} className="stagger-in" style={{ animationDelay: `${Math.min(i, 12) * 0.04}s` }}>
+            <a href={`/servers/${g.id}`} className="server-card">
+              {g.icon ? (
+                <img src={g.icon} alt="" />
+              ) : (
+                <div className="guild-fallback">{g.name.slice(0, 1)}</div>
+              )}
+              <div className="name">{g.name}</div>
+              <span className="manage-tag">{t.manage} →</span>
             </a>
           </li>
         ))}

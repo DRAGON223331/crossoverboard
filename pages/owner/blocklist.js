@@ -44,26 +44,28 @@ export default function OwnerBlocklist({ user, blocks, total }) {
       <h1 className="page-title fade-in-up d1">{t.blocklistTitle}</h1>
       <p className="lede fade-in-up d1">{t.blocklistLede}</p>
 
-      {blocks.length === 0 ? (
-        <div className="empty fade-in-up d2">{t.noBlocks}</div>
-      ) : (
-        <table className="board fade-in-up d2">
-          <tbody>
-            {blocks.map((b, i) => (
-              <tr key={`${b.blockerId}-${b.blockedId}`} className="stagger-in" style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }}>
-                <td className="name">
-                  <code>{b.blockerId}</code>
-                  <span className="muted-inline"> {t.blocked} </span>
-                  {b.blockedUsername ? `@${b.blockedUsername}` : <code>{b.blockedId}</code>}
-                </td>
-                <td className="wl">{b.at ? new Date(b.at).toLocaleDateString() : '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className="panel fade-in-up d2">
+        {blocks.length === 0 ? (
+          <div className="empty">{t.noBlocks}</div>
+        ) : (
+          <table className="board">
+            <tbody>
+              {blocks.map((b, i) => (
+                <tr key={`${b.blockerId}-${b.blockedId}`} className="stagger-in" style={{ animationDelay: `${Math.min(i, 10) * 0.04}s` }}>
+                  <td className="name">
+                    <code>{b.blockerId}</code>
+                    <span className="muted-inline"> {t.blocked} </span>
+                    {b.blockedUsername ? `@${b.blockedUsername}` : <code>{b.blockedId}</code>}
+                  </td>
+                  <td className="wl">{b.at ? new Date(b.at).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
 
-      {total > blocks.length && <div className="hint">{t.blocksTotal(total, blocks.length)}</div>}
+        {total > blocks.length && <div className="hint">{t.blocksTotal(total, blocks.length)}</div>}
+      </div>
     </div>
   );
 }
