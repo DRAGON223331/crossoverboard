@@ -147,6 +147,69 @@ a:hover { text-decoration: underline; }
 .user-chip img { width: 28px; height: 28px; image-rendering: pixelated; clip-path: var(--pixel-frame); --notch: 4px; }
 .user-chip a { color: var(--muted); }
 .user-chip a:hover { color: var(--accent); }
+.user-link { display: flex; align-items: center; gap: 10px; color: var(--muted) !important; }
+.user-link:hover { color: var(--accent) !important; text-decoration: none; }
+
+/* ── Section tabs (e.g. Manage / Leaderboard for a server) ─────────────── */
+.tab-row {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 28px;
+  border-bottom: 2px solid var(--line);
+}
+.tab-row .tab {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  color: var(--muted);
+  padding: 12px 4px;
+  margin-bottom: -2px;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.tab-row a.tab:hover { color: var(--ink); text-decoration: none; }
+.tab-row .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+[dir="rtl"] .tab-row .tab { font-family: 'Cairo', 'Tahoma', sans-serif; font-weight: 700; }
+
+/* ── Profile card ────────────────────────────────────────────────────── */
+.profile-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 24px;
+  background: var(--panel);
+  border: 2px solid var(--line);
+  clip-path: var(--pixel-frame);
+  margin-bottom: 28px;
+}
+.profile-avatar {
+  width: 72px; height: 72px;
+  image-rendering: pixelated;
+  clip-path: var(--pixel-frame);
+  --notch: 6px;
+  flex-shrink: 0;
+  background: var(--line);
+}
+.profile-avatar-fallback {
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 24px; color: var(--accent);
+}
+.profile-info { flex: 1; min-width: 0; }
+.profile-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 15px;
+  margin-bottom: 14px;
+  word-break: break-word;
+}
+[dir="rtl"] .profile-name { font-family: 'Cairo', 'Tahoma', sans-serif; font-weight: 700; }
+.profile-row {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; padding: 6px 0; font-size: 17px;
+}
+.profile-key { color: var(--muted); }
+.profile-val { color: var(--ink); }
+.profile-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 
 h1 {
   font-family: 'Press Start 2P', monospace;

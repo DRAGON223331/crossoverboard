@@ -41,8 +41,10 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
         <div className="topline-right">
           <LanguageSwitcher />
           <div className="user-chip">
-            {avatarUrl && <img src={avatarUrl} alt="" />}
-            {user.username}
+            <a href="/profile" className="user-link">
+              {avatarUrl && <img src={avatarUrl} alt="" />}
+              {user.username}
+            </a>
             <a href="/api/auth/logout">{t.signOut}</a>
           </div>
         </div>

@@ -34,7 +34,7 @@ export default function OwnerBlocklist({ user, blocks, total }) {
         <div className="topline-right">
           <LanguageSwitcher />
           <div className="user-chip">
-            {user.username}
+            <a href="/profile" className="user-link">{user.username}</a>
             <a href="/api/auth/logout">{t.signOut}</a>
           </div>
         </div>
