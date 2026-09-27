@@ -3,6 +3,7 @@ import { fetchManageableMutualGuilds } from '../lib/discord';
 import { isOwner } from '../lib/owner';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import NavBar from '../components/NavBar';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -47,7 +48,7 @@ export default function Profile({ user, guildCount, owner }) {
         </div>
       </div>
 
-      <a href="/servers" className="back-link fade-in-up">← {t.allServers}</a>
+      <NavBar active="profile" />
       <h1 className="page-title fade-in-up d1">{t.profileTitle}</h1>
       <p className="lede fade-in-up d1">{t.profileLede}</p>
 

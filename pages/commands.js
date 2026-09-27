@@ -1,6 +1,7 @@
 import { getSession } from '../lib/session';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import NavBar from '../components/NavBar';
 
 // Public page — no login required, so anyone can check what the bot can do
 // before (or without) signing in. If they're already logged in we still show
@@ -44,7 +45,7 @@ export default function Commands({ user }) {
         </div>
       </div>
 
-      <a href="/" className="back-link fade-in-up">{t.commandsBackHome}</a>
+      <NavBar active="commands" />
       <h1 className="page-title fade-in-up d1">{t.commandsTitle}</h1>
       <p className="lede fade-in-up d1">{t.commandsLede}</p>
 

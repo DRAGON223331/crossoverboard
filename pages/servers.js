@@ -3,6 +3,7 @@ import { fetchManageableMutualGuilds, guildIconUrl } from '../lib/discord';
 import { isOwner } from '../lib/owner';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
+import NavBar from '../components/NavBar';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -54,6 +55,8 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
         </div>
       </div>
 
+      <NavBar active="servers" />
+
       <a href="/profile" className="profile-card profile-card-link fade-in-up d1">
         {avatarUrl96 ? (
           <img src={avatarUrl96} alt="" className="profile-avatar" />
@@ -81,15 +84,11 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
       <h1 className="fade-in-up d1">{t.yourServers}</h1>
       <p className="lede fade-in-up d2">{t.yourServersLede}</p>
 
-      <p className="owner-link fade-in-up d2">
-        {showOwnerLinks && (
-          <>
-            <a href="/owner/blocklist">{t.ownerBlocklistLink}</a>
-            {' · '}
-          </>
-        )}
-        <a href="/commands">📜 {t.viewCommands}</a>
-      </p>
+      {showOwnerLinks && (
+        <p className="owner-link fade-in-up d2">
+          <a href="/owner/blocklist">{t.ownerBlocklistLink}</a>
+        </p>
+      )}
 
       {loadError && (
         <div className="banner error fade-in-up">
