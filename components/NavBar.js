@@ -10,6 +10,7 @@ export default function NavBar({ active }) {
     { key: 'home', href: '/home', label: t.navHome },
     { key: 'servers', href: '/servers', label: t.navServers },
     { key: 'players', href: '/players', label: t.navPlayers },
+    { key: 'store', href: '/store', label: t.navStore },
     { key: 'commands', href: '/commands', label: t.navCommands },
     { key: 'profile', href: '/profile', label: t.navProfile },
   ];

@@ -1424,3 +1424,59 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
 @media (max-width: 420px) {
   .players-grid { grid-template-columns: 1fr; }
 }
+
+/* Tabs built from <button> (Store's Skins/Titles switch) need the same look
+   the existing <a>/<span>-based tabs get for free from the browser. */
+.tab-row button.tab { background: transparent; cursor: pointer; font-family: inherit; appearance: none; }
+
+/* ── Store ────────────────────────────────────────────────────────────── */
+.store-balance-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 20px 22px; margin-bottom: 20px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius-lg);
+}
+.store-balance-label { color: var(--muted); font-size: 13.5px; font-weight: 700; }
+.store-balance-num { font-size: 30px; font-weight: 800; color: var(--accent); }
+
+.store-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+
+.store-item-card {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: var(--radius);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.store-item-card:hover { transform: translateY(-2px); border-color: var(--border-hover); box-shadow: var(--shadow-card); }
+.store-item-card.owned { border-color: rgba(63,241,126,.22); }
+.store-item-icon {
+  width: 100%; height: 64px; display: flex; align-items: center; justify-content: center;
+  font-size: 26px; letter-spacing: 4px; border-radius: 12px; background: var(--bg); border: 1px solid var(--border);
+}
+.store-item-name { font-size: 14.5px; font-weight: 700; }
+.store-item-desc { font-size: 12.5px; color: var(--muted); min-height: 32px; }
+.store-item-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: auto; }
+.store-item-price { font-weight: 800; color: var(--accent); font-size: 14px; white-space: nowrap; }
+.store-item-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.store-badge {
+  align-self: flex-start; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent);
+}
+.store-badge.equipped { background: var(--accent); color: var(--accent-ink); }
+
+.store-gift-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 50;
+}
+.store-gift-modal {
+  width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 22px;
+}
+.store-gift-modal h3 { margin-top: 0; }
+.store-gift-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+@media (max-width: 640px) {
+  .store-grid { grid-template-columns: repeat(2, 1fr); }
+  .store-balance-card { flex-direction: column; align-items: flex-start; gap: 6px; }
+}
+@media (max-width: 420px) {
+  .store-grid { grid-template-columns: 1fr; }
+}
