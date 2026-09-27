@@ -1,5 +1,6 @@
 import { getSession } from '../lib/session';
 import { fetchManageableMutualGuilds, guildIconUrl } from '../lib/discord';
+import { isOwner } from '../lib/owner';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -18,11 +19,12 @@ export async function getServerSideProps({ req }) {
       user: session.user,
       loadError,
       guilds: guilds.map((g) => ({ id: g.id, name: g.name, icon: guildIconUrl(g) })),
+      showOwnerLinks: isOwner(session),
     },
   };
 }
 
-export default function Servers({ user, guilds, loadError }) {
+export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
   const avatarUrl = user.avatar
     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`
     : null;
@@ -40,6 +42,12 @@ export default function Servers({ user, guilds, loadError }) {
 
       <h1>Your servers</h1>
       <p className="lede">Servers where you can manage settings and the bot is already a member.</p>
+
+      {showOwnerLinks && (
+        <p style={{ marginTop: -20, marginBottom: 32 }}>
+          <a href="/owner/blocklist" style={{ fontSize: 13 }}>🔒 Owner: view block list →</a>
+        </p>
+      )}
 
       {loadError && <div className="banner error">Couldn&apos;t load your servers: {loadError}</div>}
 

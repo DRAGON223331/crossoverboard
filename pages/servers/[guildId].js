@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../../lib/session';
 import { userCanManageGuild, fetchGuildTextChannels, fetchUserGuilds } from '../../lib/discord';
-import { getGuildSettings } from '../../lib/redis';
+import { getGuildSettings, getGuildStats, getGuildLeaderboard } from '../../lib/redis';
 
 export async function getServerSideProps({ req, params }) {
   const session = await getSession(req);
@@ -11,10 +11,12 @@ export async function getServerSideProps({ req, params }) {
   const allowed = await userCanManageGuild(session.accessToken, guildId);
   if (!allowed) return { redirect: { destination: '/servers', permanent: false } };
 
-  const [settings, channels, userGuilds] = await Promise.all([
+  const [settings, channels, userGuilds, stats, leaderboard] = await Promise.all([
     getGuildSettings(guildId),
     fetchGuildTextChannels(guildId),
     fetchUserGuilds(session.accessToken),
+    getGuildStats(guildId),
+    getGuildLeaderboard(guildId),
   ]);
   const guild = userGuilds.find((g) => g.id === guildId);
 
@@ -25,11 +27,13 @@ export async function getServerSideProps({ req, params }) {
       guildName: guild?.name || 'This server',
       initialSettings: settings,
       channels: channels.map((c) => ({ id: c.id, name: c.name })),
+      stats,
+      leaderboard,
     },
   };
 }
 
-export default function GuildSettings({ user, guildId, guildName, initialSettings, channels }) {
+export default function GuildSettings({ user, guildId, guildName, initialSettings, channels, stats, leaderboard }) {
   const [prefix, setPrefix] = useState(initialSettings.prefix);
   const [language, setLanguage] = useState(initialSettings.language);
   const [onlineEnabled, setOnlineEnabled] = useState(initialSettings.onlineEnabled);
@@ -71,6 +75,40 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
       <a href="/servers" style={{ fontSize: 13, color: 'var(--muted)' }}>← All servers</a>
       <h1 style={{ marginTop: 12 }}>{guildName}</h1>
       <p className="lede">Changes here go straight to the bot&apos;s database — no restart needed.</p>
+
+      <div className="stats-row">
+        <div className="stat-box">
+          <div className="stat-num">{stats.today}</div>
+          <div className="stat-label">Games today</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-num">{stats.last7Days}</div>
+          <div className="stat-label">Last 7 days</div>
+        </div>
+      </div>
+
+      <div className="field">
+        <label>Leaderboard</label>
+        {leaderboard.rows.length === 0 ? (
+          <div className="empty">No one has scored here yet.</div>
+        ) : (
+          <table className="board">
+            <tbody>
+              {leaderboard.rows.map((row, i) => (
+                <tr key={row.userId}>
+                  <td className="rank">{i + 1}</td>
+                  <td className="name">{row.name}</td>
+                  <td className="pts">{row.points} pts</td>
+                  <td className="wl">{row.w}W/{row.l}L</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {leaderboard.total > leaderboard.rows.length && (
+          <div className="hint">{leaderboard.total} ranked players total — showing the top {leaderboard.rows.length}.</div>
+        )}
+      </div>
 
       {status && <div className={`banner ${status.type}`}>{status.text}</div>}
 
