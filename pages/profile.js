@@ -35,6 +35,7 @@ export default function Profile({ user, guildCount, owner }) {
     <div className="shell">
       <div className="topline fade-in-down">
         <div className="brand">
+          <img src="/crossover-logo.png" alt="" className="brand-logo" />
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <div className="topline-right">

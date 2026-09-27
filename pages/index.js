@@ -15,6 +15,7 @@ export default function Home({ error }) {
     <div className="shell">
       <div className="topline fade-in-down">
         <div className="brand">
+          <img src="/crossover-logo.png" alt="" className="brand-logo" />
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <LanguageSwitcher />

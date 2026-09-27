@@ -39,6 +39,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
     <div className="shell">
       <div className="topline fade-in-down">
         <div className="brand">
+          <img src="/crossover-logo.png" alt="" className="brand-logo" />
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <div className="topline-right">
