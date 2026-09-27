@@ -95,6 +95,14 @@ Discord Developer Portal.
   again.
 
 
+## Add Crossover invite permissions
+
+The dashboard's **Add Crossover** button uses the exact same permission bitfield as the bot's own `!invite` command:
+
+`327222946833`
+
+That covers the permissions declared in `handlers/invite.js` (game play, cross-server chat, server setup, and notification roles). The dashboard does not fall back to a different permission value.
+
 ## Discord permissions required
 
 The dashboard uses two different identities:

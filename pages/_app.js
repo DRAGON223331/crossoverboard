@@ -1,8 +1,9 @@
 import '../styles/globals.css';
 import { useEffect, useState } from 'react';
-import { LanguageProvider } from '../lib/i18n';
+import { LanguageProvider, useLanguage } from '../lib/i18n';
 
 function StartupOverlay({ onComplete }) {
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
@@ -42,7 +43,7 @@ function StartupOverlay({ onComplete }) {
         </div>
         <div className="startup-name">CROSSOVER</div>
         <div className="startup-line"><span /></div>
-        <div className="startup-loading">LOADING DASHBOARD</div>
+        <div className="startup-loading">{t.startupLoading}</div>
       </div>
     </div>
   );
