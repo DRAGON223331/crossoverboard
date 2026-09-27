@@ -28,8 +28,11 @@ export async function getServerSideProps({ req }) {
 
 export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
   const { t } = useLanguage();
-  const avatarUrl = user.avatar
+  const avatarUrl32 = user.avatar
     ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`
+    : null;
+  const avatarUrl96 = user.avatar
+    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=96`
     : null;
 
   return (
@@ -42,13 +45,37 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
           <LanguageSwitcher />
           <div className="user-chip">
             <a href="/profile" className="user-link">
-              {avatarUrl && <img src={avatarUrl} alt="" />}
+              {avatarUrl32 && <img src={avatarUrl32} alt="" />}
               {user.username}
             </a>
             <a href="/api/auth/logout">{t.signOut}</a>
           </div>
         </div>
       </div>
+
+      <a href="/profile" className="profile-card profile-card-link fade-in-up d1">
+        {avatarUrl96 ? (
+          <img src={avatarUrl96} alt="" className="profile-avatar" />
+        ) : (
+          <div className="profile-avatar profile-avatar-fallback">{user.username.slice(0, 1)}</div>
+        )}
+        <div className="profile-info">
+          <div className="profile-name">{user.username}</div>
+          <div className="profile-row no-border">
+            <span className="profile-key">{t.accountId}</span>
+            <code className="profile-val">{user.id}</code>
+          </div>
+          <div className="profile-row">
+            <span className="profile-key">{t.accountRole}</span>
+            <span className="profile-val">{showOwnerLinks ? t.roleOwner : t.roleMember}</span>
+          </div>
+          <div className="profile-row">
+            <span className="profile-key">{t.manageableServers}</span>
+            <span className="profile-val">{guilds.length}</span>
+          </div>
+        </div>
+        <span className="profile-card-arrow">{t.viewProfile} →</span>
+      </a>
 
       <h1 className="fade-in-up d1">{t.yourServers}</h1>
       <p className="lede fade-in-up d2">{t.yourServersLede}</p>
