@@ -13,10 +13,12 @@ functions on Vercel.
 ## How it stays in sync with the bot
 
 The bot (running separately, e.g. on Pella) only used to read these
-settings once at startup. It has been updated (see the bot's own
-`index.js`) to re-read them from Redis every 30 seconds, so a change saved
-here shows up in the running bot within half a minute — no bot restart
-needed.
+settings once at startup. It has been updated (see `handlers/remoteStore.js`
+→ `startAutoRefresh`, used by `handlers/prefix.js`, `handlers/language.js`,
+`handlers/gameRoom.js`, and `handlers/onlineMode.js`) to re-read **all
+four** settings from Redis every 10 seconds, so a change saved here — prefix,
+language, game room, or cross-server play — shows up in the running bot
+within 10 seconds, no bot restart needed.
 
 ## One-time setup
 

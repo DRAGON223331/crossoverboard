@@ -50,7 +50,7 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Save failed.');
-      setStatus({ type: 'ok', text: 'Saved. The bot picks this up within 30 seconds.' });
+      setStatus({ type: 'ok', text: 'Saved. The bot picks this up within 10 seconds.' });
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
     } finally {
