@@ -103,3 +103,7 @@ The dashboard uses two different identities:
 - **Bot token:** used to inspect the bot's member roles, channel permissions, list channels, rename/create the game room, and perform bot-side operations.
 
 The game-room health check resolves the bot's actual user ID through `/users/@me` before requesting `/guilds/{guildId}/members/{botUserId}`. It does not use `/members/@me`, which Discord rejects for this endpoint.
+
+
+### AutoMod permissions
+The dashboard reads Discord AutoMod rules using the dashboard bot token. The bot must have **Manage Server** (or **Administrator**) in the target server. Using the logged-in user's OAuth bearer token for `/guilds/:guild_id/auto-moderation/rules` can return `401 Unauthorized`, so the dashboard intentionally does not use that token for AutoMod.
