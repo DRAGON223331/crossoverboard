@@ -81,11 +81,15 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
       <h1 className="fade-in-up d1">{t.yourServers}</h1>
       <p className="lede fade-in-up d2">{t.yourServersLede}</p>
 
-      {showOwnerLinks && (
-        <p className="owner-link fade-in-up d2">
-          <a href="/owner/blocklist">{t.ownerBlocklistLink}</a>
-        </p>
-      )}
+      <p className="owner-link fade-in-up d2">
+        {showOwnerLinks && (
+          <>
+            <a href="/owner/blocklist">{t.ownerBlocklistLink}</a>
+            {' · '}
+          </>
+        )}
+        <a href="/commands">📜 {t.viewCommands}</a>
+      </p>
 
       {loadError && (
         <div className="banner error fade-in-up">
