@@ -18,7 +18,10 @@ export default function Home({ error }) {
           <img src="/crossover-logo.png" alt="" className="brand-logo" />
           Crossover <span>{t.brandSuffix}</span>
         </div>
-        <LanguageSwitcher />
+        <div className="top-actions">
+            <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
+            <LanguageSwitcher />
+          </div>
       </div>
 
       {error && (

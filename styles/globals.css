@@ -1231,3 +1231,20 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
   .achievement-grid { grid-template-columns: 1fr; }
   .profile-showcase-avatar { width: 96px; height: 96px; }
 }
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.top-invite {
+  white-space: nowrap;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 640px) {
+  .top-actions { gap: 6px; }
+  .top-invite { padding: 7px 10px; font-size: 0.78rem; }
+}

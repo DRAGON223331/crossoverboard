@@ -33,7 +33,10 @@ export default function Commands({ user }) {
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <div className="topline-right">
-          <LanguageSwitcher />
+          <div className="top-actions">
+            <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
+            <LanguageSwitcher />
+          </div>
           {user ? (
             <div className="user-chip">
               {user.username}

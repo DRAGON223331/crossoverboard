@@ -41,7 +41,10 @@ export default function GuildLeaderboard({ user, guildId, guildName, stats, lead
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <div className="topline-right">
-          <LanguageSwitcher />
+          <div className="top-actions">
+            <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
+            <LanguageSwitcher />
+          </div>
           <div className="user-chip">
             <a href="/profile" className="user-link">{user.username}</a>
             <a href="/api/auth/logout">{t.signOut}</a>

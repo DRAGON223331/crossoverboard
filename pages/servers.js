@@ -44,7 +44,10 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <div className="topline-right">
-          <LanguageSwitcher />
+          <div className="top-actions">
+            <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
+            <LanguageSwitcher />
+          </div>
           <div className="user-chip">
             <a href="/profile" className="user-link">
               {avatarUrl32 && <img src={avatarUrl32} alt="" />}

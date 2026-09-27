@@ -79,7 +79,10 @@ export default function Profile({ user, guildCount, owner, profile }) {
           Crossover <span>{t.brandSuffix}</span>
         </div>
         <div className="topline-right">
-          <LanguageSwitcher />
+          <div className="top-actions">
+            <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
+            <LanguageSwitcher />
+          </div>
           <div className="user-chip">
             {user.username}
             <a href="/api/auth/logout">{t.signOut}</a>
