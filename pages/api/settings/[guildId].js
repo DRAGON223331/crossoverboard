@@ -1,6 +1,13 @@
 import { getSession } from '../../../lib/session';
-import { userCanManageGuild, fetchGuildTextChannels, renameChannel } from '../../../lib/discord';
-import { getGuildSettings, setGuildValue, KEYS } from '../../../lib/redis';
+import {
+  userCanManageGuild,
+  fetchGuildTextChannels,
+  renameChannel,
+  getGameRoomHealth,
+  fetchGuildAutoModStatus,
+  createGameRoom,
+} from '../../../lib/discord';
+import { getGuildSettings, setGuildValue, resetGuildValue, KEYS } from '../../../lib/redis';
 
 // Mirrors the bot's own handlers/prefix.js validatePrefix() rules, so a
 // prefix saved here is guaranteed to also be accepted there.
@@ -28,15 +35,57 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const [settings, channels] = await Promise.all([getGuildSettings(guildId), fetchGuildTextChannels(guildId)]);
-      return res.status(200).json({ settings, channels });
+      const [roomResult, automodResult] = await Promise.allSettled([
+        getGameRoomHealth(guildId, settings),
+        fetchGuildAutoModStatus(guildId),
+      ]);
+      return res.status(200).json({
+        settings,
+        channels,
+        roomHealth:
+          roomResult.status === 'fulfilled'
+            ? roomResult.value
+            : { status: 'unknown', message: roomResult.reason?.message || 'Could not inspect the game room.' },
+        automod:
+          automodResult.status === 'fulfilled'
+            ? automodResult.value
+            : { enabled: null, error: automodResult.reason?.message || 'Could not read AutoMod rules.' },
+      });
     } catch (err) {
       return res.status(502).json({ error: err.message });
     }
   }
 
   if (req.method === 'POST') {
-    const { prefix, language, onlineEnabled, channelId, renameTo } = req.body || {};
+    const { action, prefix, language, onlineEnabled, channelId, renameTo } = req.body || {};
     try {
+      // Danger-zone resets intentionally remove only this guild's override.
+      // The bot then falls back to the exact defaults used by its handlers.
+      if (action === 'resetPrefix') {
+        await resetGuildValue(KEYS.prefixes, guildId);
+      } else if (action === 'resetLanguage') {
+        await resetGuildValue(KEYS.languages, guildId);
+      } else if (action === 'resetRoom') {
+        await resetGuildValue(KEYS.roomNames, guildId);
+      } else if (action === 'resetOnline') {
+        await resetGuildValue(KEYS.onlineMode, guildId);
+      } else if (action === 'recreateRoom') {
+        const current = await getGuildSettings(guildId);
+        const health = await getGameRoomHealth(guildId, current);
+        if (health.status !== 'missing') {
+          return res.status(409).json({
+            error:
+              health.status === 'healthy'
+                ? 'The game room already exists and is healthy.'
+                : 'The game room already exists, but its permissions need fixing.',
+            roomHealth: health,
+          });
+        }
+        const channel = await createGameRoom(guildId, current.room.name || 'crossgames');
+        await setGuildValue(KEYS.roomNames, guildId, { channelId: channel.id, name: channel.name });
+      } else if (action) {
+        return res.status(400).json({ error: 'Unknown dashboard action.' });
+      }
       if (prefix !== undefined) {
         const error = validatePrefix(prefix);
         if (error) return res.status(400).json({ error });
@@ -68,7 +117,15 @@ export default async function handler(req, res) {
       }
 
       const settings = await getGuildSettings(guildId);
-      return res.status(200).json({ settings });
+      const [roomResult, automodResult] = await Promise.allSettled([
+        getGameRoomHealth(guildId, settings),
+        fetchGuildAutoModStatus(guildId),
+      ]);
+      return res.status(200).json({
+        settings,
+        roomHealth: roomResult.status === 'fulfilled' ? roomResult.value : null,
+        automod: automodResult.status === 'fulfilled' ? automodResult.value : null,
+      });
     } catch (err) {
       console.error('Settings update failed:', err.message);
       return res.status(502).json({ error: err.message });

@@ -4,7 +4,7 @@ export default function NavBar({ active }) {
   const { t } = useLanguage();
 
   const items = [
-    { key: 'home', href: '/', label: t.navHome },
+    { key: 'home', href: '/home', label: t.navHome },
     { key: 'servers', href: '/servers', label: t.navServers },
     { key: 'commands', href: '/commands', label: t.navCommands },
     { key: 'profile', href: '/profile', label: t.navProfile },

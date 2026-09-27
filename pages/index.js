@@ -4,7 +4,7 @@ import LanguageSwitcher from '../components/LanguageSwitcher';
 
 export async function getServerSideProps({ req, query }) {
   const session = await getSession(req);
-  if (session) return { redirect: { destination: '/servers', permanent: false } };
+  if (session) return { redirect: { destination: '/home', permanent: false } };
   return { props: { error: typeof query.error === 'string' ? query.error : null } };
 }
 

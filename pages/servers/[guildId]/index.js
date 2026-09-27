@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getSession } from '../../../lib/session';
 import { userCanManageGuild, fetchGuildTextChannels, fetchUserGuilds } from '../../../lib/discord';
 import { getGuildSettings } from '../../../lib/redis';
@@ -20,6 +20,9 @@ export async function getServerSideProps({ req, params }) {
   ]);
   const guild = userGuilds.find((g) => g.id === guildId);
 
+  const roomHealth = null;
+  const automod = null;
+
   return {
     props: {
       user: session.user,
@@ -27,11 +30,13 @@ export async function getServerSideProps({ req, params }) {
       guildName: guild?.name || 'This server',
       initialSettings: settings,
       channels: channels.map((c) => ({ id: c.id, name: c.name })),
+      initialRoomHealth: roomHealth,
+      initialAutomod: automod,
     },
   };
 }
 
-export default function GuildSettings({ user, guildId, guildName, initialSettings, channels }) {
+export default function GuildSettings({ user, guildId, guildName, initialSettings, channels, initialRoomHealth, initialAutomod }) {
   const { t } = useLanguage();
   const [prefix, setPrefix] = useState(initialSettings.prefix);
   const [language, setLanguage] = useState(initialSettings.language);
@@ -40,6 +45,10 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
   const [renameTo, setRenameTo] = useState(initialSettings.room.name);
   const [status, setStatus] = useState(null); // { type: 'ok' | 'error', text }
   const [saving, setSaving] = useState(false);
+  const [roomHealth, setRoomHealth] = useState(initialRoomHealth);
+  const [automod, setAutomod] = useState(initialAutomod);
+  const [loadingHealth, setLoadingHealth] = useState(!initialRoomHealth);
+  const [actionBusy, setActionBusy] = useState(null);
 
   async function handleSave(e) {
     e.preventDefault();
@@ -54,12 +63,70 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || t.saveFailed);
       setStatus({ type: 'ok', text: t.savedOk });
+      if (data.settings) {
+        setPrefix(data.settings.prefix);
+        setLanguage(data.settings.language);
+        setOnlineEnabled(data.settings.onlineEnabled);
+        setChannelId(data.settings.room.channelId || '');
+        setRenameTo(data.settings.room.name || '');
+      }
+      if (data.roomHealth) setRoomHealth(data.roomHealth);
+      if (data.automod) setAutomod(data.automod);
     } catch (err) {
       setStatus({ type: 'error', text: err.message });
     } finally {
       setSaving(false);
     }
   }
+
+  async function runAction(action, successText) {
+    setActionBusy(action);
+    setStatus(null);
+    try {
+      const res = await fetch(`/api/settings/${guildId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Action failed.');
+      if (data.settings) {
+        setPrefix(data.settings.prefix);
+        setLanguage(data.settings.language);
+        setOnlineEnabled(data.settings.onlineEnabled);
+        setChannelId(data.settings.room.channelId || '');
+        setRenameTo(data.settings.room.name || '');
+      }
+      if (data.roomHealth) setRoomHealth(data.roomHealth);
+      if (data.automod) setAutomod(data.automod);
+      setStatus({ type: 'ok', text: successText });
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message });
+      if (err.message.toLowerCase().includes('already exists')) {
+        refreshHealth();
+      }
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  async function refreshHealth() {
+    setLoadingHealth(true);
+    try {
+      const res = await fetch(`/api/settings/${guildId}`);
+      const data = await res.json();
+      if (res.ok) {
+        setRoomHealth(data.roomHealth || null);
+        setAutomod(data.automod || null);
+      }
+    } catch {} finally {
+      setLoadingHealth(false);
+    }
+  }
+
+  useEffect(() => {
+    refreshHealth();
+  }, [guildId]);
 
   return (
     <div className="shell">
@@ -150,12 +217,77 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
               </label>
             </div>
 
+
+            <div className="health-grid">
+              <div className="health-card">
+                <div className="health-card-head">
+                  <div>
+                    <div className="health-kicker">🩺 {t.roomHealthTitle}</div>
+                    <h2>{roomHealth?.channelName ? `#${roomHealth.channelName}` : t.roomHealthMissing}</h2>
+                  </div>
+                  <span className={`health-pill ${roomHealth?.status === 'healthy' ? 'healthy' : roomHealth?.status === 'permissions' ? 'warning' : 'danger'}`}>
+                    {loadingHealth ? t.checking : roomHealth?.status === 'healthy' ? t.healthHealthy : roomHealth?.status === 'permissions' ? t.healthPermissions : t.healthMissing}
+                  </span>
+                </div>
+                <p className="hint no-top">
+                  {roomHealth?.message || t.roomHealthChecking}
+                </p>
+                {roomHealth && roomHealth.status !== 'healthy' && (
+                  <div className="health-perms">
+                    <span>View Channel {roomHealth.viewChannel ? '✓' : '✕'}</span>
+                    <span>Send Messages {roomHealth.sendMessages ? '✓' : '✕'}</span>
+                  </div>
+                )}
+                <div className="health-actions">
+                  <button
+                    className="btn secondary"
+                    type="button"
+                    onClick={refreshHealth}
+                    disabled={loadingHealth}
+                  >↻ {t.checkAgain}</button>
+                  {roomHealth?.status === 'missing' && (
+                    <button
+                      className="btn"
+                      type="button"
+                      onClick={() => runAction('recreateRoom', t.roomRecreated)}
+                      disabled={actionBusy === 'recreateRoom'}
+                    >♻️ {actionBusy === 'recreateRoom' ? t.working : t.recreateRoom}</button>
+                  )}
+                </div>
+              </div>
+
+              <div className="health-card">
+                <div className="health-card-head">
+                  <div>
+                    <div className="health-kicker">🚫 {t.automodTitle}</div>
+                    <h2>{t.automodCustomWords}</h2>
+                  </div>
+                  <span className={`health-pill ${automod?.enabled === true ? 'healthy' : automod?.enabled === false ? 'neutral' : 'warning'}`}>
+                    {automod?.enabled === true ? t.enabled : automod?.enabled === false ? t.disabled : t.unavailable}
+                  </span>
+                </div>
+                <p className="hint no-top">{t.automodReadonly}</p>
+                {automod?.error && <p className="hint no-top">{automod.error}</p>}
+              </div>
+            </div>
+
             <div className="save-bar">
               <button className="btn glow" type="submit" disabled={saving}>
                 {saving ? t.saving : t.saveChanges}
               </button>
             </div>
           </form>
+          <section className="danger-zone">
+            <div className="danger-line"><span>{t.dangerZone}</span></div>
+            <p className="danger-copy">{t.dangerLede}</p>
+            <div className="danger-grid">
+              <button type="button" className="danger-btn" disabled={actionBusy} onClick={() => runAction('resetPrefix', t.resetDone)}>{t.resetPrefix}</button>
+              <button type="button" className="danger-btn" disabled={actionBusy} onClick={() => runAction('resetLanguage', t.resetDone)}>{t.resetLanguage}</button>
+              <button type="button" className="danger-btn" disabled={actionBusy} onClick={() => runAction('resetRoom', t.resetDone)}>{t.resetRoom}</button>
+              <button type="button" className="danger-btn" disabled={actionBusy} onClick={() => runAction('resetOnline', t.resetDone)}>{t.resetOnline}</button>
+            </div>
+          </section>
+
         </div>
       </div>
     </div>
