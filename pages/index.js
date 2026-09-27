@@ -31,9 +31,14 @@ export default function Home({ error }) {
         <p className="kicker fade-in-up d1">{t.heroKicker}</p>
         <h1 className="fade-in-up d2">{t.heroTitle}</h1>
         <p className="lede fade-in-up d3">{t.heroLede}</p>
-        <a className="btn glow fade-in-up d4" href="/api/auth/login">
-          {t.signIn}
-        </a>
+        <div className="hero-actions fade-in-up d4">
+          <a className="btn glow" href="/api/auth/login">
+            {t.signIn}
+          </a>
+          <a className="btn secondary" href="/commands">
+            {t.viewCommands}
+          </a>
+        </div>
       </div>
     </div>
   );
