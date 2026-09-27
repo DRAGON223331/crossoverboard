@@ -717,13 +717,13 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.fade-in-up { animation: fadeInUp 0.5s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-.fade-in-down { animation: fadeInDown 0.45s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
-.fade-in-up.d1 { animation-delay: 0.05s; }
-.fade-in-up.d2 { animation-delay: 0.12s; }
-.fade-in-up.d3 { animation-delay: 0.19s; }
-.fade-in-up.d4 { animation-delay: 0.26s; }
-.stagger-in { animation: fadeInUp 0.4s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.fade-in-up { animation: fadeInUp 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.fade-in-down { animation: fadeInDown 0.18s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+.fade-in-up.d1 { animation-delay: 0s; }
+.fade-in-up.d2 { animation-delay: 0.02s; }
+.fade-in-up.d3 { animation-delay: 0.04s; }
+.fade-in-up.d4 { animation-delay: 0.06s; }
+.stagger-in { animation: fadeInUp 0.2s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
 
 /* ── RTL / Arabic ────────────────────────────────────────────────────── */
 [dir="rtl"] body { font-family: 'Cairo', 'Tahoma', sans-serif; }
