@@ -12,6 +12,7 @@ export async function getServerSideProps({ req }) {
 
   let guildCount = 0;
   let profile = null;
+
   try {
     const [guilds, userProfile] = await Promise.all([
       fetchManageableMutualGuilds(session.accessToken),
@@ -34,11 +35,41 @@ export async function getServerSideProps({ req }) {
   };
 }
 
-export default function Profile({ user, guildCount, owner }) {
+function achievementMeta(key, t) {
+  const raw = String(key ?? '').toLowerCase();
+  if (raw.includes('first') || raw.includes('win')) return { icon: '🥇', title: t.profileAchievementFirstWin };
+  if (raw.includes('10') && (raw.includes('game') || raw.includes('play'))) return { icon: '🎮', title: t.profileAchievementTenGames };
+  if (raw.includes('streak')) return { icon: '🔥', title: t.profileAchievementTenStreak };
+  if (raw.includes('all') || raw.includes('every')) return { icon: '🌟', title: t.profileAchievementAllGames };
+  return { icon: '🏆', title: String(key || t.profileAchievementUnlocked) };
+}
+
+export default function Profile({ user, guildCount, owner, profile }) {
   const { t } = useLanguage();
+
   const avatarUrl = user.avatar
-    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=128`
+    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
     : null;
+
+  const wins = profile?.w ?? 0;
+  const losses = profile?.l ?? 0;
+  const draws = profile?.d ?? 0;
+  const totalGames = wins + losses + draws;
+  const winRate = totalGames ? Math.round((wins / totalGames) * 100) : 0;
+  const currentStreak = profile?.streak ?? 0;
+  const bestStreak = profile?.best ?? 0;
+  const points = profile?.points ?? 0;
+  const level = profile?.level ?? 1;
+  const levelStart = Math.max(0, (level - 1) * 100);
+  const levelProgress = Math.min(100, Math.max(0, points - levelStart));
+  const achievementCount = profile?.achievements?.length ?? 0;
+  const achievements = Array.isArray(profile?.achievements) ? profile.achievements : [];
+  const achievementSlots = [
+    { id: 'first_win', icon: '🥇', title: t.profileAchievementFirstWin, unlocked: achievementCount >= 1 },
+    { id: 'ten_games', icon: '🎮', title: t.profileAchievementTenGames, unlocked: achievementCount >= 2 },
+    { id: 'ten_streak', icon: '🔥', title: t.profileAchievementTenStreak, unlocked: achievementCount >= 3 },
+    { id: 'all_games', icon: '🌟', title: t.profileAchievementAllGames, unlocked: achievementCount >= 4 },
+  ];
 
   return (
     <div className="shell">
@@ -60,56 +91,180 @@ export default function Profile({ user, guildCount, owner }) {
       <h1 className="page-title fade-in-up d1">{t.profileTitle}</h1>
       <p className="lede fade-in-up d1">{t.profileLede}</p>
 
-      <div className="profile-card fade-in-up d2">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="profile-avatar" />
-        ) : (
-          <div className="profile-avatar profile-avatar-fallback">{user.username.slice(0, 1)}</div>
-        )}
-        <div className="profile-info">
-          <div className="profile-name">{user.username}</div>
-          <div className="profile-row">
-            <span className="profile-key">{t.accountId}</span>
-            <code className="profile-val">{user.id}</code>
+      <section className="profile-hero fade-in-up d2">
+        <div className="profile-hero-main">
+          <div className="profile-avatar-wrap">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="profile-avatar profile-avatar-large" />
+            ) : (
+              <div className="profile-avatar profile-avatar-large profile-avatar-fallback">{user.username.slice(0, 1)}</div>
+            )}
+            <span className="profile-online-dot" />
           </div>
-          <div className="profile-row">
-            <span className="profile-key">{t.accountRole}</span>
-            <span className="profile-val">{owner ? t.roleOwner : t.roleMember}</span>
-          </div>
-          {guildCount !== null && (
-            <div className="profile-row">
-              <span className="profile-key">{t.manageableServers}</span>
-              <span className="profile-val">{guildCount}</span>
+
+          <div className="profile-hero-info">
+            <div className="profile-name profile-name-large">{user.username}</div>
+            <div className="profile-subline">
+              <span className="profile-badge">CROSSOVER</span>
+              <span>{t.profileGlobalStats}</span>
             </div>
-          )}
-        </div>
-      </div>
-
-
-      <div className="profile-dashboard fade-in-up d3">
-        <div className="profile-stat-grid">
-          <div className="stat-box"><div className="stat-num">{profile?.level ?? 1}</div><div className="stat-label">{t.homeLevel}</div></div>
-          <div className="stat-box"><div className="stat-num">{profile?.points ?? 0}</div><div className="stat-label">{t.homePoints}</div></div>
-          <div className="stat-box"><div className="stat-num">{profile ? `${profile.w}/${profile.l}/${profile.d}` : '0/0/0'}</div><div className="stat-label">{t.homeRecord}</div></div>
-          <div className="stat-box"><div className="stat-num">{profile?.achievements?.length ?? 0}/4</div><div className="stat-label">{t.homeAchievements}</div></div>
-        </div>
-        {profile && (
-          <div className="engine-grid compact">
-            {profile.engines.map((engine) => (
-              <div key={engine.key} className={`engine-card ${engine.completed ? 'done' : 'todo'}`}>
-                <div className="engine-icon">{engine.icon}</div>
-                <div className="engine-body">
-                  <div className="engine-name">{engine.label}</div>
-                  <div className="engine-meta">{engine.completed ? `${engine.played} ${t.homePlayed} · ${engine.wins} ${t.homeWins}` : t.homeNotPlayedTag}</div>
-                </div>
-                <span className="engine-state">{engine.completed ? '✓' : '○'}</span>
-              </div>
-            ))}
+            <div className="profile-mini-grid">
+              <div><span>{t.accountRole}</span><strong>{owner ? t.roleOwner : t.roleMember}</strong></div>
+              <div><span>{t.manageableServers}</span><strong>{guildCount ?? '—'}</strong></div>
+              <div><span>{t.accountId}</span><strong className="mono">{user.id}</strong></div>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
 
-      <div className="profile-actions fade-in-up d3">
+        <div className="profile-level-card">
+          <div className="profile-level-icon">XP</div>
+          <div className="profile-level-copy">
+            <span>{t.homeLevel}</span>
+            <strong>{level}<small>/100</small></strong>
+          </div>
+          <div className="profile-level-track"><span style={{ width: `${levelProgress}%` }} /></div>
+          <div className="profile-level-meta">
+            <span>{levelProgress}/100 XP</span>
+            <b>{points} {t.homePoints}</b>
+          </div>
+        </div>
+      </section>
+
+      {!profile ? (
+        <section className="panel profile-empty fade-in-up d3">
+          <div className="profile-empty-icon">🎮</div>
+          <h2>{t.profileNoGamesTitle}</h2>
+          <p>{t.homeNoProfile}</p>
+        </section>
+      ) : (
+        <>
+          <section className="profile-stat-grid profile-stat-grid-large fade-in-up d3">
+            <div className="stat-box profile-stat-card">
+              <span className="stat-icon">🏆</span>
+              <div className="stat-num">{points}</div>
+              <div className="stat-label">{t.homePoints}</div>
+            </div>
+            <div className="stat-box profile-stat-card">
+              <span className="stat-icon">⚔️</span>
+              <div className="stat-num">{wins} / {losses} / {draws}</div>
+              <div className="stat-label">{t.profileWLD}</div>
+            </div>
+            <div className="stat-box profile-stat-card">
+              <span className="stat-icon">📈</span>
+              <div className="stat-num">{winRate}%</div>
+              <div className="stat-label">{t.profileWinRate}</div>
+            </div>
+            <div className="stat-box profile-stat-card">
+              <span className="stat-icon">🎮</span>
+              <div className="stat-num">{totalGames}</div>
+              <div className="stat-label">{t.profileTotalGames}</div>
+            </div>
+            <div className="stat-box profile-stat-card">
+              <span className="stat-icon">🔥</span>
+              <div className="stat-num">{currentStreak}</div>
+              <div className="stat-label">{t.profileCurrentStreak}</div>
+            </div>
+            <div className="stat-box profile-stat-card">
+              <span className="stat-icon">⚡</span>
+              <div className="stat-num">{bestStreak}</div>
+              <div className="stat-label">{t.homeStreak}</div>
+            </div>
+          </section>
+
+          <section className="profile-section fade-in-up d4">
+            <div className="section-heading">
+              <div>
+                <h2>{t.profileCardTitle}</h2>
+                <p className="lede">{t.profileCardLede}</p>
+              </div>
+            </div>
+
+            <div className="profile-showcase">
+              <div className="profile-showcase-avatar">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" />
+                ) : (
+                  <div>{user.username.slice(0, 1)}</div>
+                )}
+              </div>
+              <div className="profile-showcase-copy">
+                <div className="showcase-top"><span>XP</span><b>{t.homeLevel} {level}</b></div>
+                <h3>{t.profileCardHeading}</h3>
+                <div className="showcase-points"><span>★</span><strong>{points}</strong><small>{t.homePoints}</small></div>
+              </div>
+              <div className="showcase-trophy">🏆 <b>x{Math.max(1, achievementCount)}</b></div>
+            </div>
+          </section>
+
+          <section className="profile-section fade-in-up d4">
+            <div className="section-heading">
+              <div>
+                <h2>{t.profileGamesTitle}</h2>
+                <p className="lede">{t.profileGamesLede}</p>
+              </div>
+              <span className="section-count">{profile.engines.length}</span>
+            </div>
+
+            <div className="profile-games-grid">
+              {profile.engines.map((engine) => (
+                <article key={engine.key} className={`profile-game-card ${engine.completed ? 'played' : 'locked'}`}>
+                  <div className="profile-game-icon">{engine.icon}</div>
+                  <div className="profile-game-body">
+                    <h3>{engine.label}</h3>
+                    <div className="profile-game-stats">
+                      <span>{t.profilePlayed}: <b>{engine.played}</b></span>
+                      <span>{t.homeWins}: <b>{engine.wins}</b></span>
+                    </div>
+                    <div className="profile-game-bar">
+                      <span style={{ width: `${engine.played ? Math.min(100, engine.wins / engine.played * 100) : 0}%` }} />
+                    </div>
+                  </div>
+                  <div className="profile-game-status">{engine.completed ? '✓' : '🔒'}</div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="profile-section fade-in-up d4">
+            <div className="section-heading">
+              <div>
+                <h2>{t.profileAchievementsTitle}</h2>
+                <p className="lede">{t.profileAchievementsLede}</p>
+              </div>
+              <span className="section-count">{achievementCount}/4</span>
+            </div>
+
+            <div className="achievement-grid">
+              {achievementSlots.map((achievement, index) => (
+                <article key={achievement.id} className={`achievement-card ${achievement.unlocked ? 'unlocked' : 'locked'}`}>
+                  <div className="achievement-icon">{achievement.unlocked ? achievement.icon : '🔒'}</div>
+                  <div>
+                    <h3>{achievement.title}</h3>
+                    <span>{achievement.unlocked ? t.profileUnlocked : t.profileLocked}</span>
+                  </div>
+                  {achievement.unlocked && <b>✓</b>}
+                </article>
+              ))}
+            </div>
+          </section>
+
+          {achievements.length > 4 && (
+            <section className="profile-section fade-in-up d4">
+              <div className="panel">
+                <h2>{t.profileOtherAchievements}</h2>
+                <div className="achievement-raw-list">
+                  {achievements.slice(4).map((item, i) => {
+                    const meta = achievementMeta(item, t);
+                    return <span key={`${item}-${i}`}>{meta.icon} {meta.title}</span>;
+                  })}
+                </div>
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      <div className="profile-actions fade-in-up d4">
         <a className="btn glow" href="/servers">{t.goToServers}</a>
         {owner && (
           <a className="btn secondary" href="/owner/blocklist">{t.ownerBlocklistLink}</a>
