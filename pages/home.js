@@ -1,9 +1,10 @@
 import { getSession } from '../lib/session';
-import { fetchManageableMutualGuilds, guildIconUrl } from '../lib/discord';
+import { fetchManageableMutualGuilds, guildIconUrl, fetchBotStatus } from '../lib/discord';
 import { getUserProfile } from '../lib/redis';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
+import BotStatusCard from '../components/BotStatusCard';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -11,27 +12,31 @@ export async function getServerSideProps({ req }) {
 
   let guilds = [];
   let profile = null;
+  let botStatus = null;
   try {
-    [guilds, profile] = await Promise.all([
+    [guilds, profile, botStatus] = await Promise.all([
       fetchManageableMutualGuilds(session.accessToken),
       getUserProfile(session.user.id),
+      fetchBotStatus(),
     ]);
   } catch {
     // Keep the home page useful even if one remote source is temporarily down.
     try { guilds = await fetchManageableMutualGuilds(session.accessToken); } catch {}
     try { profile = await getUserProfile(session.user.id); } catch {}
+    try { botStatus = await fetchBotStatus(); } catch {}
   }
 
   return {
     props: {
       user: session.user,
       profile,
+      botStatus,
       guilds: guilds.map((g) => ({ id: g.id, name: g.name, icon: guildIconUrl(g) })),
     },
   };
 }
 
-export default function Home({ user, profile, guilds }) {
+export default function Home({ user, profile, guilds, botStatus }) {
   const { t } = useLanguage();
   const engines = profile?.engines || [
     { key: 'xo', label: 'Tic Tac Toe', icon: '⭕❌', played: 0, wins: 0, completed: false },
@@ -68,6 +73,8 @@ export default function Home({ user, profile, guilds }) {
       </div>
 
       <NavBar active="home" />
+
+      <BotStatusCard status={botStatus} />
 
       <section className="home-hero fade-in-up">
         <div>

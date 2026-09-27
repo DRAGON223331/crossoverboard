@@ -1,4 +1,6 @@
 import { useLanguage } from '../lib/i18n';
+import Notifications from './Notifications';
+import ThemeToggle from './ThemeToggle';
 
 export default function NavBar({ active }) {
   const { t } = useLanguage();
@@ -21,6 +23,10 @@ export default function NavBar({ active }) {
           {item.label}
         </a>
       ))}
+      <div className="nav-tools">
+        <Notifications />
+        <ThemeToggle />
+      </div>
     </nav>
   );
 }
