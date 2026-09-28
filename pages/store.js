@@ -252,10 +252,12 @@ export default function Store({ user, initialInventory, initialFriends }) {
 
       <h2 className="fade-in-up d2">{t.storeSectionSkins}</h2>
       <div className="store-grid fade-in-up d3">
-        <SkinCard
-          id="cross" skin={SKINS.cross} inventory={inventory} t={t} lang={lang} busyId={busyId}
-          onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
-        />
+        {Object.entries(SKINS).map(([id, skin]) => (
+          <SkinCard
+            key={id} id={id} skin={skin} inventory={inventory} t={t} lang={lang} busyId={busyId}
+            onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
+          />
+        ))}
       </div>
 
       <h2 className="fade-in-up d2" style={{ marginTop: 28 }}>{t.storeSectionTitles}</h2>
