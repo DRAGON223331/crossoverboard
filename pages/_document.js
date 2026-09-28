@@ -1,5 +1,14 @@
 import { Html, Head, Main, NextScript } from 'next/document';
 
+const BASE = (process.env.DASHBOARD_BASE_URL || '').replace(/\/+$/, '');
+const TITLE = 'Crossover — بوت ألعاب ديسكورد بين السيرفرات + لوحة تحكم';
+// Discord cuts long descriptions at roughly 350 characters, so this stays under that.
+const DESCRIPTION =
+  '🎮 العب ضد لاعبين من كل السيرفرات: XO، حجر ورقة مقص، تريفيا، أعلام، مافيا وكراسي.\n' +
+  '🏆 نقاط ومستويات وإنجازات وترتيب لأفضل اللاعبين.\n' +
+  '💬 أصدقاء وشات مباشر، ومتجر لأشكال اللعب.\n' +
+  '⚙️ تحكّم في البوت داخل سيرفرك: البادئة وغرفة الألعاب واللغة، من غير أوامر.';
+
 export default function Document() {
   return (
     <Html>
@@ -7,36 +16,27 @@ export default function Document() {
         <link rel="icon" href="/favicon-64.png" sizes="64x64" type="image/png" />
         <link rel="icon" href="/favicon-256.png" sizes="256x256" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#0b0d12" />
+        {/* Discord paints the embed's side stripe with theme-color, so it is the brand green. */}
+        <meta name="theme-color" content="#22c55e" />
 
-        {/* Open Graph metadata used by Discord, Facebook, and other link previews. */}
-        <meta
-          name="description"
-          content="Crossover هو لوحة تحكم متكاملة لبوت Discord لإدارة السيرفرات ومتابعة حالة البوت واستكشاف الأوامر وعرض ملفات اللاعبين وإحصائياتهم وإنجازاتهم وتقدمهم في الألعاب من مكان واحد."
-        />
+        {/* Link preview (Discord, WhatsApp, Telegram, X…). Discord shows title + description + a large image. */}
+        <meta name="description" content={DESCRIPTION} />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content="Crossover" />
-        <meta property="og:title" content="Crossover — Discord Gaming Dashboard" />
-        <meta
-          property="og:description"
-          content="لوحة تحكم Crossover لإدارة البوت داخل سيرفرات Discord، ومتابعة حالة البوت، واستعراض الأوامر، وإدارة السيرفرات، وعرض ملفات اللاعبين وإحصائيات الفوز والخسارة والإنجازات والتقدم في الألعاب — كل ذلك من لوحة واحدة."
-        />
-        <meta
-          property="og:image"
-          content={`${process.env.DASHBOARD_BASE_URL || ''}/crossover-logo.png`}
-        />
-        <meta property="og:image:alt" content="Crossover logo" />
-        <meta property="og:url" content={process.env.DASHBOARD_BASE_URL || ''} />
-        <meta name="twitter:card" content="summary" />
-        <meta name="twitter:title" content="Crossover — Discord Gaming Dashboard" />
-        <meta
-          name="twitter:description"
-          content="لوحة تحكم ألعاب لـ Discord لإدارة السيرفرات وحالة البوت والأوامر والملفات الشخصية والإحصائيات والإنجازات وتقدم الألعاب."
-        />
-        <meta
-          name="twitter:image"
-          content={`${process.env.DASHBOARD_BASE_URL || ''}/crossover-logo.png`}
-        />
+        <meta property="og:locale" content="ar_AR" />
+        <meta property="og:locale:alternate" content="en_US" />
+        <meta property="og:title" content={TITLE} />
+        <meta property="og:description" content={DESCRIPTION} />
+        <meta property="og:image" content={`${BASE}/og-image.png`} />
+        <meta property="og:image:type" content="image/png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:image:alt" content="Crossover — Discord gaming bot and dashboard" />
+        <meta property="og:url" content={BASE} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={TITLE} />
+        <meta name="twitter:description" content={DESCRIPTION} />
+        <meta name="twitter:image" content={`${BASE}/og-image.png`} />
       </Head>
       <body>
         <Main />
