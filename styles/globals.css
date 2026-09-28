@@ -1931,3 +1931,11 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
   .chat-row.flash .chat-bubble { animation: none; box-shadow: 0 0 0 3px var(--accent); }
   .chat-tools { transition: none; }
 }
+
+/* Profile cards in the store */
+.store-grid-cards { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.store-card-preview {
+  width: 100%; border-radius: 12px; overflow: hidden; background: #000; border: 1px solid var(--border);
+}
+.store-card-preview img { display: block; width: 100%; height: auto; }
+.store-loot-card-img { display: block; width: 180px; max-width: 100%; height: auto; border-radius: 8px; }

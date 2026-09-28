@@ -75,7 +75,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'unequip') {
-      if (slot !== 'xo' && slot !== 'title') return res.status(400).json({ error: 'Unknown slot.' });
+      if (slot !== 'xo' && slot !== 'title' && slot !== 'card') return res.status(400).json({ error: 'Unknown slot.' });
       const inventory = await equipItem(userId, slot, null);
       return res.status(200).json({ inventory });
     }

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { getSession } from '../../lib/session';
 import { isOwner } from '../../lib/owner';
-import { SKINS, TITLES } from '../../lib/storeCatalog';
+import { SKINS, TITLES, CARDS } from '../../lib/storeCatalog';
 import { useLanguage } from '../../lib/i18n';
 import LanguageSwitcher from '../../components/LanguageSwitcher';
 
@@ -198,6 +198,31 @@ export default function OwnerInventory({ user }) {
                   )}
                   {owned && equipped && (
                     <button type="button" className="btn secondary" disabled={busy} onClick={() => runAction({ action: 'unequip', slot: 'title' }, t.ownerInventoryEquipped)}>{t.storeUnequip}</button>
+                  )}
+                  {owned && (
+                    <button type="button" className="btn secondary" disabled={busy} onClick={() => runAction({ action: 'revoke', itemId: id }, t.ownerInventoryRevoked)}>{t.ownerInventoryRevoke}</button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          <h3>{t.storeSectionCards}</h3>
+          {Object.entries(CARDS).map(([id, card]) => {
+            const owned = inventory.items.includes(id);
+            const equipped = inventory.equipped?.card === id;
+            return (
+              <div className="toggle-row" key={id}>
+                <div>{card.icon} {lang === 'ar' ? card.ar : card.en} {equipped && <span className="hint no-top">({t.storeEquipped})</span>}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {!owned && (
+                    <button type="button" className="btn secondary" disabled={busy} onClick={() => runAction({ action: 'grant', itemId: id }, t.ownerInventoryGranted)}>{t.ownerInventoryGrant}</button>
+                  )}
+                  {owned && !equipped && (
+                    <button type="button" className="btn secondary" disabled={busy} onClick={() => runAction({ action: 'equip', itemId: id }, t.ownerInventoryEquipped)}>{t.storeEquip}</button>
+                  )}
+                  {owned && equipped && (
+                    <button type="button" className="btn secondary" disabled={busy} onClick={() => runAction({ action: 'unequip', slot: 'card' }, t.ownerInventoryEquipped)}>{t.storeUnequip}</button>
                   )}
                   {owned && (
                     <button type="button" className="btn secondary" disabled={busy} onClick={() => runAction({ action: 'revoke', itemId: id }, t.ownerInventoryRevoked)}>{t.ownerInventoryRevoke}</button>

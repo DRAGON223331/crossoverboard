@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../lib/session';
 import { getUserInventory, getFriends } from '../lib/redis';
-import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, RARITIES, getItem, isTitle, emojiUrl } from '../lib/storeCatalog';
+import { SKINS, TITLES, CARDS, COMING_SOON, LOOT_BOX_COST, RARITIES, getItem, isTitle, isCard, emojiUrl } from '../lib/storeCatalog';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -184,6 +184,50 @@ function TitleCard({ id, title, inventory, t, lang, busyId, onBuy, onEquip, onGi
   );
 }
 
+function CardCard({ id, card, inventory, t, lang, busyId, onBuy, onEquip, onGift }) {
+  const owned = inventory.items.includes(id);
+  const equipped = inventory.equipped?.card === id;
+  const name = lang === 'ar' ? card.ar : card.en;
+  const busy = busyId === id;
+
+  return (
+    <article className={`store-item-card store-card-item fade-in-up rarity-${card.rarity}${owned ? ' owned' : ''}`}>
+      <div className="store-card-preview"><img src={card.image} alt={name} loading="lazy" /></div>
+      {equipped ? (
+        <span className="store-badge equipped">{t.storeEquipped}</span>
+      ) : owned ? (
+        <span className="store-badge">{t.storeOwned}</span>
+      ) : null}
+      <div className="store-item-name">{card.icon} {name}</div>
+      <div className="store-item-footer">
+        {card.lootOnly ? <RarityPill rarity={card.rarity} lang={lang} /> : <span className="store-item-price">{card.price} {t.storePoints}</span>}
+        <div className="store-item-actions">
+          {owned ? (
+            equipped ? (
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onEquip('card', null)}>
+                {t.storeUnequip}
+              </button>
+            ) : (
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onEquip('card', id)}>
+                {t.storeEquip}
+              </button>
+            )
+          ) : (
+            <>
+              <button type="button" className="btn glow" disabled={busy} onClick={() => onBuy(id)}>
+                {busy ? t.storeBuying : t.storeBuy}
+              </button>
+              <button type="button" className="btn secondary" disabled={busy} onClick={() => onGift({ id }, name)}>
+                {t.storeGiftButton}
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export default function Store({ user, initialInventory, initialFriends }) {
   const { t, lang } = useLanguage();
   const [inventory, setInventory] = useState(initialInventory);
@@ -319,7 +363,7 @@ export default function Store({ user, initialInventory, initialFriends }) {
         {reveal && (
           <div className={`store-loot-reveal rarity-${reveal.item.rarity}${reveal.duplicate ? ' dup' : ''}${reveal.item.rarity === 'legendary' && !reveal.duplicate ? ' legendary' : ''}`}>
             <span className="store-loot-reveal-icon">
-              {isTitle(reveal.item) ? reveal.item.icon : <SkinPreview skin={reveal.item} />}
+              {isCard(reveal.item) ? <img className="store-loot-card-img" src={reveal.item.image} alt="" /> : isTitle(reveal.item) ? reveal.item.icon : <SkinPreview skin={reveal.item} />}
             </span>
             <div className="store-loot-reveal-body">
               <span className="store-loot-reveal-name">{lang === 'ar' ? reveal.item.ar : reveal.item.en}</span>
@@ -365,6 +409,16 @@ export default function Store({ user, initialInventory, initialFriends }) {
         {Object.entries(TITLES).filter(([id, title]) => !title.lootOnly || inventory.items.includes(id)).map(([id, title]) => (
           <TitleCard
             key={id} id={id} title={title} inventory={inventory} t={t} lang={lang} busyId={busyId}
+            onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
+          />
+        ))}
+      </div>
+
+      <h2 className="fade-in-up d2" style={{ marginTop: 28 }}>{t.storeSectionCards}</h2>
+      <div className="store-grid store-grid-cards fade-in-up d3">
+        {Object.entries(CARDS).filter(([id, card]) => !card.lootOnly || inventory.items.includes(id)).map(([id, card]) => (
+          <CardCard
+            key={id} id={id} card={card} inventory={inventory} t={t} lang={lang} busyId={busyId}
             onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
           />
         ))}
