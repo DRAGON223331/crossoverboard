@@ -5,11 +5,12 @@ import { getSession } from '../lib/session';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
+import { useUnread } from '../components/ChatNotifier';
+import { MAX_LEN, REACTIONS } from '../lib/chatShared';
 
 const THREAD_POLL_MS = 2000; // open conversation
 const INBOX_POLL_MS = 6000; // friends list / unread / presence
 const TYPING_THROTTLE_MS = 3000;
-const MAX_LEN = 1000;
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -65,9 +66,15 @@ export default function Chat({ user }) {
   const [draft, setDraft] = useState('');
   const [error, setError] = useState(null);
   const [loadingThread, setLoadingThread] = useState(false);
+  const [replyTo, setReplyTo] = useState(null); // { id, from, text } — the message the next send answers
+  const [editing, setEditing] = useState(null); // { id, original } — composer is editing this message
+  const [menuId, setMenuId] = useState(null); // message whose action bar is open (tap / keyboard)
+  const [flashId, setFlashId] = useState(null); // message briefly highlighted after jumping to it
+  const { refresh: refreshUnread, soundOn, setSoundOn } = useUnread();
 
   const activeRef = useRef(null);
   const lastIdRef = useRef(0);
+  const revRef = useRef(null); // last `rev` the server told us; a different one means old messages changed
   const listRef = useRef(null);
   const stickRef = useRef(true); // keep scrolled to the bottom unless the reader scrolled up
   const typingSentRef = useRef(0);
@@ -125,9 +132,34 @@ export default function Chat({ user }) {
     if (maxId > lastIdRef.current) lastIdRef.current = maxId;
   }, []);
 
+  // A "full" answer (first load, or someone edited / deleted / reacted): the latest page from the
+  // server wins for every message it contains; our not-yet-confirmed sends are kept.
+  const applySnapshot = useCallback((data) => {
+    const floor = data.firstId || Infinity; // anything older than the oldest stored message is gone (trimmed / cleared)
+    setMessages((prev) => {
+      const confirmedCids = new Set(data.messages.map((m) => m.cid).filter(Boolean));
+      const byId = new Map();
+      for (const m of prev) {
+        if (m.pending) {
+          if (!confirmedCids.has(m.cid)) byId.set(`p:${m.cid}`, m);
+          continue;
+        }
+        if (m.id < floor) continue;
+        byId.set(m.id, m);
+      }
+      for (const m of data.messages) byId.set(m.id, m);
+      return [...byId.values()].sort((a, b) => (a.at - b.at) || ((a.id || Infinity) - (b.id || Infinity)));
+    });
+    lastIdRef.current = data.messages.length ? Math.max(...data.messages.map((m) => m.id)) : 0;
+  }, []);
+
   useEffect(() => {
     activeRef.current = activeId;
     lastIdRef.current = 0;
+    revRef.current = null;
+    setReplyTo(null);
+    setEditing(null);
+    setMenuId(null);
     stickRef.current = true;
     setMessages([]);
     setPeer({ online: false, typing: false, readUpTo: 0 });
@@ -142,14 +174,20 @@ export default function Chat({ user }) {
     const poll = async () => {
       if (document.hidden) return;
       try {
-        const data = await api(`thread?friendId=${encodeURIComponent(activeId)}&after=${lastIdRef.current}`);
+        const revPart = revRef.current === null ? '' : `&rev=${revRef.current}`;
+        const data = await api(`thread?friendId=${encodeURIComponent(activeId)}&after=${lastIdRef.current}${revPart}`);
         if (stopped || activeRef.current !== activeId) return;
         if (data.profile) setPeerProfile(data.profile);
-        mergeMessages(data.messages);
+        revRef.current = data.rev;
+        if (data.full) applySnapshot(data);
+        else mergeMessages(data.messages);
         setPeer({ online: data.online, typing: data.typing, readUpTo: data.friendReadUpTo });
         setError((e) => (e && e.sticky ? e : null));
         // A poll that returned new messages also cleared the unread badge server-side.
-        if (data.messages.length) setFriends((prev) => prev?.map((f) => (f.id === activeId ? { ...f, unread: 0 } : f)) ?? prev);
+        if (data.messages.length) {
+          setFriends((prev) => prev?.map((f) => (f.id === activeId ? { ...f, unread: 0 } : f)) ?? prev);
+          refreshUnread(); // reading them cleared the counter on the server — update the badge / tab title now
+        }
       } catch (err) {
         if (!stopped) setError({ text: err.message, sticky: err.code === 'NOT_FRIENDS' || err.code === 'BLOCKED' });
       } finally {
@@ -170,7 +208,7 @@ export default function Chat({ user }) {
       window.clearTimeout(timer);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [activeId, mergeMessages]);
+  }, [activeId, mergeMessages, applySnapshot, refreshUnread]);
 
   // Grow the input with its content (up to ~6 lines), shrink again after sending.
   useEffect(() => {
@@ -197,7 +235,7 @@ export default function Chat({ user }) {
     try {
       const { message } = await api('send', {
         method: 'POST',
-        body: JSON.stringify({ friendId: local.to, text: local.text, clientId: local.cid }),
+        body: JSON.stringify({ friendId: local.to, text: local.text, clientId: local.cid, replyTo: local.reply?.id }),
       });
       if (activeRef.current === local.to) {
         setMessages((prev) => {
@@ -206,7 +244,7 @@ export default function Chat({ user }) {
         });
         if (message.id > lastIdRef.current) lastIdRef.current = message.id;
       }
-      setFriends((prev) => prev?.map((f) => (f.id === local.to ? { ...f, last: { text: message.text.slice(0, 80), from: user.id, at: message.at } } : f)) ?? prev);
+      setFriends((prev) => prev?.map((f) => (f.id === local.to ? { ...f, last: { text: message.text.slice(0, 80), deleted: false, from: user.id, at: message.at } } : f)) ?? prev);
     } catch (err) {
       setMessages((prev) => prev.map((m) => (m.pending && m.cid === local.cid ? { ...m, failed: true, failText: err.message } : m)));
     }
@@ -216,6 +254,10 @@ export default function Chat({ user }) {
     const text = draft.trim();
     if (!text || !activeId) return;
     if (text.length > MAX_LEN) return;
+    if (editing) {
+      saveEdit(text);
+      return;
+    }
     const local = {
       id: null,
       cid: `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
@@ -224,9 +266,11 @@ export default function Chat({ user }) {
       text,
       at: Date.now(),
       pending: true,
+      ...(replyTo ? { reply: { id: replyTo.id, from: replyTo.from, text: replyTo.text } } : {}),
     };
     setMessages((prev) => [...prev, local]);
     setDraft('');
+    setReplyTo(null);
     stickRef.current = true;
     deliver(local);
     inputRef.current?.focus();
@@ -246,7 +290,114 @@ export default function Chat({ user }) {
     }
   }
 
+  // ── Reply / edit / delete / react ─────────────────────────────────────
+  // Each one updates the screen first and tells the server after; if the server
+  // says no, the old message is put back and the error banner explains why.
+  function replaceMessage(id, fn) {
+    setMessages((prev) => prev.map((m) => (m.id === id ? fn(m) : m)));
+  }
+
+  function startReply(m) {
+    setMenuId(null);
+    setEditing(null);
+    setReplyTo({ id: m.id, from: m.from, text: m.text });
+    inputRef.current?.focus();
+  }
+
+  function startEdit(m) {
+    setMenuId(null);
+    setReplyTo(null);
+    setEditing({ id: m.id, original: m.text });
+    setDraft(m.text);
+    window.setTimeout(() => inputRef.current?.focus(), 0);
+  }
+
+  function cancelCompose() {
+    if (editing) setDraft('');
+    setEditing(null);
+    setReplyTo(null);
+  }
+
+  async function saveEdit(text) {
+    const { id, original } = editing;
+    setEditing(null);
+    setDraft('');
+    if (text === original) return;
+    const before = messages.find((m) => m.id === id);
+    replaceMessage(id, (m) => ({ ...m, text, edited: Date.now() }));
+    try {
+      await api('edit', { method: 'POST', body: JSON.stringify({ friendId: activeId, messageId: id, text }) });
+      if (activeRef.current === activeId) setFriends((prev) => prev?.map((f) => (f.id === activeId && f.last?.at === before?.at ? { ...f, last: { ...f.last, text: text.slice(0, 80) } } : f)) ?? prev);
+    } catch (err) {
+      if (before) replaceMessage(id, () => before);
+      setError({ text: err.message });
+    }
+  }
+
+  async function removeMessage(m) {
+    setMenuId(null);
+    if (!window.confirm(t.chatDeleteConfirm)) return;
+    const before = m;
+    if (editing?.id === m.id) cancelCompose();
+    if (replyTo?.id === m.id) setReplyTo(null);
+    replaceMessage(m.id, () => ({ id: m.id, from: m.from, at: m.at, deleted: true }));
+    try {
+      await api('delete', { method: 'POST', body: JSON.stringify({ friendId: activeId, messageId: m.id }) });
+      loadInbox();
+    } catch (err) {
+      replaceMessage(m.id, () => before);
+      setError({ text: err.message });
+    }
+  }
+
+  async function toggleReaction(m, emoji) {
+    setMenuId(null);
+    const before = m;
+    replaceMessage(m.id, (cur) => {
+      const reactions = { ...(cur.reactions || {}) };
+      const who = new Set(reactions[emoji] || []);
+      if (who.has(user.id)) who.delete(user.id);
+      else who.add(user.id);
+      if (who.size) reactions[emoji] = [...who];
+      else delete reactions[emoji];
+      const next = { ...cur };
+      if (Object.keys(reactions).length) next.reactions = reactions;
+      else delete next.reactions;
+      return next;
+    });
+    try {
+      await api('react', { method: 'POST', body: JSON.stringify({ friendId: activeId, messageId: m.id, emoji }) });
+    } catch (err) {
+      replaceMessage(m.id, () => before);
+      setError({ text: err.message });
+    }
+  }
+
+  function jumpTo(id) {
+    const el = document.getElementById(`msg-${id}`);
+    if (!el) return; // older than what is loaded — nothing to scroll to
+    stickRef.current = false;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    setFlashId(id);
+    window.setTimeout(() => setFlashId((cur) => (cur === id ? null : cur)), 1600);
+  }
+
+  // Tapping outside an open action bar closes it.
+  useEffect(() => {
+    if (menuId === null) return undefined;
+    const onDoc = (e) => {
+      if (!e.target.closest?.(`[data-msg-id="${menuId}"]`)) setMenuId(null);
+    };
+    document.addEventListener('click', onDoc);
+    return () => document.removeEventListener('click', onDoc);
+  }, [menuId]);
+
   function onKeyDown(e) {
+    if (e.key === 'Escape' && (editing || replyTo)) {
+      e.preventDefault();
+      cancelCompose();
+      return;
+    }
     // Enter sends, Shift+Enter adds a new line. Ignore Enter while an IME is composing (Arabic/CJK keyboards).
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
@@ -294,6 +445,20 @@ export default function Chat({ user }) {
     if (k === today) return t.chatToday;
     if (k === yesterday) return t.chatYesterday;
     return dateFmt.format(ts);
+  }
+
+  const byId = useMemo(() => new Map(messages.filter((m) => m.id != null).map((m) => [m.id, m])), [messages]);
+
+  // What a reply quote should show: the live message when it is loaded (so edits show up and
+  // deleted ones disappear), otherwise the snapshot the server stored with the reply.
+  function quoteOf(r) {
+    const live = byId.get(r.id);
+    const gone = r.deleted || live?.deleted;
+    return {
+      gone,
+      who: r.from === user.id ? t.chatYou : (peerName || t.chatUnknown),
+      text: gone ? '' : (live ? live.text : r.text),
+    };
   }
 
   const lastMineId = useMemo(() => {
@@ -349,6 +514,16 @@ export default function Chat({ user }) {
               aria-label={t.chatSearch}
             />
             {totalUnread > 0 && <span className="chat-badge" title={t.chatUnread}>{totalUnread}</span>}
+            <button
+              type="button"
+              className={`icon-btn chat-sound${soundOn ? ' on' : ''}`}
+              onClick={() => setSoundOn(!soundOn)}
+              title={soundOn ? t.chatSoundOnTitle : t.chatSoundOffTitle}
+              aria-label={soundOn ? t.chatSoundOnTitle : t.chatSoundOffTitle}
+              aria-pressed={soundOn}
+            >
+              {soundOn ? '🔔' : '🔕'}
+            </button>
           </div>
 
           <div className="chat-friends">
@@ -378,7 +553,7 @@ export default function Chat({ user }) {
                   </span>
                   <span className="chat-friend-preview">
                     {f.last
-                      ? `${f.last.from === user.id ? `${t.chatYou}: ` : ''}${f.last.text}`
+                      ? `${f.last.from === user.id ? `${t.chatYou}: ` : ''}${f.last.deleted ? `🚫 ${t.chatDeletedPreview}` : f.last.text}`
                       : (f.online ? t.chatOnline : t.chatOffline)}
                   </span>
                 </span>
@@ -425,8 +600,17 @@ export default function Chat({ user }) {
                   const { m, grouped } = row;
                   const mine = m.from === user.id;
                   const seen = mine && m.id != null && m.id === lastMineId && m.id <= peer.readUpTo;
+                  const canAct = m.id != null && !m.pending && !m.failed && !m.deleted;
+                  const open = menuId === m.id;
+                  const reactions = Object.entries(m.reactions || {});
+                  const quote = m.reply ? quoteOf(m.reply) : null;
                   return (
-                    <div className={`chat-row ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}`} key={row.key}>
+                    <div
+                      className={`chat-row ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}${flashId === m.id ? ' flash' : ''}`}
+                      key={row.key}
+                      id={m.id != null ? `msg-${m.id}` : undefined}
+                      data-msg-id={m.id ?? undefined}
+                    >
                       {!mine && (
                         <div className="chat-side-avatar">
                           {!grouped && <Avatar name={peerName} src={peerAvatar} size={30} />}
@@ -434,14 +618,84 @@ export default function Chat({ user }) {
                       )}
                       <div className="chat-col">
                         {!mine && !grouped && <span className="chat-author">{peerName}</span>}
-                        <div className={`chat-bubble${m.pending ? ' pending' : ''}${m.failed ? ' failed' : ''}`} dir="auto">
-                          {m.text}
+                        <div className="chat-msg-wrap">
+                          {m.deleted ? (
+                            <div className="chat-bubble deleted" dir="auto">🚫 {t.chatDeleted}</div>
+                          ) : (
+                            <div
+                              className={`chat-bubble${m.pending ? ' pending' : ''}${m.failed ? ' failed' : ''}${canAct ? ' actionable' : ''}`}
+                              dir="auto"
+                              role={canAct ? 'button' : undefined}
+                              tabIndex={canAct ? 0 : undefined}
+                              aria-label={canAct ? t.chatMessageOptions : undefined}
+                              aria-expanded={canAct ? open : undefined}
+                              onClick={canAct ? () => setMenuId(open ? null : m.id) : undefined}
+                              onKeyDown={canAct ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setMenuId(open ? null : m.id); } } : undefined}
+                            >
+                              {quote && (
+                                <button
+                                  type="button"
+                                  className={`chat-quote${quote.gone ? ' gone' : ''}`}
+                                  title={t.chatJumpTo}
+                                  onClick={(e) => { e.stopPropagation(); if (!quote.gone) jumpTo(m.reply.id); }}
+                                >
+                                  <b>{quote.who}</b>
+                                  <span dir="auto">{quote.gone ? t.chatQuoteDeleted : quote.text}</span>
+                                </button>
+                              )}
+                              {m.text}
+                            </div>
+                          )}
+
+                          {canAct && (
+                            <div className={`chat-tools${open ? ' open' : ''}`} role="toolbar" aria-label={t.chatMessageOptions}>
+                              {REACTIONS.map((emoji) => (
+                                <button
+                                  type="button"
+                                  key={emoji}
+                                  className={`chat-tool emoji${(m.reactions?.[emoji] || []).includes(user.id) ? ' on' : ''}`}
+                                  tabIndex={open ? 0 : -1}
+                                  onClick={() => toggleReaction(m, emoji)}
+                                  aria-label={emoji}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                              <span className="chat-tools-sep" aria-hidden="true" />
+                              <button type="button" className="chat-tool" tabIndex={open ? 0 : -1} onClick={() => startReply(m)} title={t.chatReply} aria-label={t.chatReply}>↩</button>
+                              {mine && (
+                                <>
+                                  <button type="button" className="chat-tool" tabIndex={open ? 0 : -1} onClick={() => startEdit(m)} title={t.chatEdit} aria-label={t.chatEdit}>✎</button>
+                                  <button type="button" className="chat-tool danger" tabIndex={open ? 0 : -1} onClick={() => removeMessage(m)} title={t.chatDelete} aria-label={t.chatDelete}>🗑️</button>
+                                </>
+                              )}
+                            </div>
+                          )}
                         </div>
-                        {!grouped || m.failed || seen ? (
+
+                        {reactions.length > 0 && !m.deleted && (
+                          <div className="chat-reactions">
+                            {reactions.map(([emoji, who]) => (
+                              <button
+                                type="button"
+                                key={emoji}
+                                className={`chat-react${who.includes(user.id) ? ' mine' : ''}`}
+                                onClick={() => toggleReaction(m, emoji)}
+                                aria-pressed={who.includes(user.id)}
+                              >
+                                <span>{emoji}</span>
+                                <b>{who.length}</b>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+
+                        {!grouped || m.failed || seen || m.edited ? (
                           <div className="chat-meta">
                             <time>{timeFmt.format(m.at)}</time>
+                            {m.edited && !m.deleted && <span>· {t.chatEdited}</span>}
                             {mine && m.pending && !m.failed && <span>{t.chatSending}</span>}
-                            {mine && !m.pending && <span className={seen ? 'seen' : ''}>{seen ? `✓✓ ${t.chatSeen}` : '✓'}</span>}
+                            {mine && !m.pending && !m.deleted && <span className={seen ? 'seen' : ''}>{seen ? `✓✓ ${t.chatSeen}` : '✓'}</span>}
                             {m.failed && (
                               <button type="button" className="chat-retry" onClick={() => retry(m)}>
                                 {m.failText || t.chatFailed} · {t.chatRetry}
@@ -464,6 +718,21 @@ export default function Chat({ user }) {
 
               {error && <div className="banner error chat-error">{error.text}</div>}
 
+              {(replyTo || editing) && (
+                <div className="chat-context">
+                  <span className="chat-context-icon" aria-hidden="true">{editing ? '✎' : '↩'}</span>
+                  <span className="chat-context-body">
+                    <b>
+                      {editing
+                        ? t.chatEditing
+                        : `${t.chatReplyingTo} ${replyTo.from === user.id ? t.chatYou : peerName}`}
+                    </b>
+                    <span dir="auto">{editing ? editing.original : replyTo.text}</span>
+                  </span>
+                  <button type="button" className="icon-btn" onClick={cancelCompose} title={t.chatCancel} aria-label={t.chatCancel}>✕</button>
+                </div>
+              )}
+
               <div className="chat-compose">
                 <textarea
                   ref={inputRef}
@@ -478,7 +747,7 @@ export default function Chat({ user }) {
                   aria-label={t.chatPlaceholder}
                 />
                 <button type="button" className="btn glow" onClick={send} disabled={!draft.trim() || error?.sticky}>
-                  {t.chatSend}
+                  {editing ? t.chatSave : t.chatSend}
                 </button>
               </div>
               {draft.length > MAX_LEN - 150 && <div className="chat-count">{MAX_LEN - draft.length}</div>}

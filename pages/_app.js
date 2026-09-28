@@ -1,6 +1,8 @@
 import '../styles/globals.css';
 import { useEffect, useState } from 'react';
+import Head from 'next/head';
 import { LanguageProvider, useLanguage } from '../lib/i18n';
+import { UnreadProvider } from '../components/ChatNotifier';
 
 function StartupOverlay({ onComplete }) {
   const { t } = useLanguage();
@@ -55,8 +57,13 @@ export default function App({ Component, pageProps }) {
 
   return (
     <LanguageProvider>
-      <StartupOverlay onComplete={completeStartup} />
-      {siteVisible && <Component {...pageProps} />}
+      <Head>
+        <title>Crossover</title>
+      </Head>
+      <UnreadProvider>
+        <StartupOverlay onComplete={completeStartup} />
+        {siteVisible && <Component {...pageProps} />}
+      </UnreadProvider>
     </LanguageProvider>
   );
 }

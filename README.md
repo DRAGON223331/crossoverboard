@@ -143,3 +143,24 @@ The bot's own `!chat` / `!end` DM relay is untouched and keeps working.
 Files: `lib/chat.js`, `pages/api/chat/[action].js`, `pages/chat.js`,
 `components/ChatBadge.js` (+ small edits in `lib/redis.js`, `lib/i18n.js`,
 `components/NavBar.js`, `pages/friends.js`, `styles/globals.css`).
+
+### Chat extras: edit, delete, reply, reactions, notifications
+
+- **Reply** (↩): the message keeps a short quote of the original; clicking the quote scrolls to it.
+  If the original is later deleted, the quote says so and its text is removed from storage too.
+- **Edit** (✎, own messages): reuses the input box ("Editing message", Esc cancels); shows an "edited" mark.
+- **Delete** (🗑️, own messages): removes it for both people. A tombstone stays so replies and ids remain valid,
+  and it stops counting as unread for a friend who never opened it.
+- **Reactions**: 👍 ❤️ 😂 😮 😢 🔥 (list in `lib/chatShared.js`, checked on the server). Same emoji again removes it.
+  On a mouse the action bar appears on hover; on touch, tap the message.
+- **How old messages stay in sync**: every edit / delete / reaction bumps `crossover:chat:rev:<conv>`.
+  A poll whose `rev` is out of date gets the whole latest page again; unchanged polls stay as cheap as before.
+  Each message is updated with an atomic compare-and-swap (`EVAL` + `LPOS` + `LSET`), so two people reacting at
+  the same moment cannot overwrite each other. This needs `EVAL` on your Upstash database (available on all plans).
+- **Discord DM when you are away**: if a message arrives and the receiver has not been on the dashboard for ~45 s,
+  the bot (same `DISCORD_BOT_TOKEN`, no change to the bot itself) sends one DM with a link to the chat.
+  At most one DM per conversation per 10 minutes (`DM_COOLDOWN` in `lib/chat.js`). The DM never contains the message
+  text. It is skipped silently if the person has DMs closed or shares no server with the bot.
+- **Tab title + sound**: `(3) Crossover` while there are unread messages, updated even from a background tab
+  (`components/ChatNotifier.js`, one poller shared with the nav badge). The 🔔 button above the friends list turns on a
+  soft two-note ping when the unread total increases; it is off by default and remembered in the browser.
