@@ -128,6 +128,7 @@ Crossover can talk, and blocking/unfriending closes the chat.
 - **Saved history** — last 300 messages per conversation, so an offline
   friend sees everything when they come back (the bot's `!chat` relay loses
   messages if the other side is away).
+- **Display name + avatar**: read from Discord with the bot token (`lib/profiles.js`) and cached in Redis for 6 hours, so it costs one lookup per person per 6h. Falls back to the stored username and Discord's default avatar if Discord can't be reached.
 - **Presence, unread badges, typing indicator, "Seen" receipts**, optimistic
   sending with retry, day separators, Arabic/RTL support, mobile layout.
 - **Anti-flood**: 12 messages per 10 seconds per user; 1000 characters max.

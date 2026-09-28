@@ -2,6 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { getSession } from '../lib/session';
 import { getFriends } from '../lib/redis';
+import { withProfiles } from '../lib/profiles';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -10,7 +11,7 @@ export async function getServerSideProps({ req }) {
   const session = await getSession(req);
   if (!session) return { redirect: { destination: '/', permanent: false } };
 
-  const friends = await getFriends(session.user.id);
+  const friends = await withProfiles(await getFriends(session.user.id));
 
   return {
     props: { user: session.user, initialFriends: friends },
@@ -166,9 +167,15 @@ export default function Friends({ user, initialFriends }) {
         ) : (
           friends.map((f) => (
             <div className="toggle-row" key={f.id}>
-              <div>
-                <strong>{f.username ? `@${f.username}` : f.id}</strong>
-                {f.at ? <span className="hint no-top" style={{ display: 'block' }}>{new Date(f.at).toLocaleDateString()}</span> : null}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                {f.avatar ? (
+                  <img src={f.avatar} alt="" width={40} height={40} loading="lazy" referrerPolicy="no-referrer" style={{ borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : null}
+                <div style={{ minWidth: 0 }}>
+                  <strong>{f.name || (f.username ? `@${f.username}` : f.id)}</strong>
+                  {f.name && f.username && f.name !== f.username ? <span className="hint no-top" style={{ display: 'block' }}>@{f.username}</span> : null}
+                  {f.at ? <span className="hint no-top" style={{ display: 'block' }}>{new Date(f.at).toLocaleDateString()}</span> : null}
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <Link href={`/chat?with=${f.id}`} className="btn glow">💬 {t.navChat}</Link>

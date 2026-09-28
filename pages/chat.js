@@ -36,12 +36,18 @@ function dayKey(ts) {
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 }
 
-function Avatar({ name, online, size = 42 }) {
+function Avatar({ name, src, online, size = 42 }) {
+  const [broken, setBroken] = useState(false);
+  useEffect(() => setBroken(false), [src]);
   const letter = (name || '?').trim().charAt(0).toUpperCase() || '?';
   return (
     <span className="chat-avatar" style={{ width: size, height: size, fontSize: size * 0.42 }}>
-      {letter}
-      <span className={`chat-presence${online ? ' on' : ''}`} />
+      {src && !broken ? (
+        <img src={src} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setBroken(true)} />
+      ) : (
+        letter
+      )}
+      {online !== undefined && <span className={`chat-presence${online ? ' on' : ''}`} />}
     </span>
   );
 }
@@ -55,6 +61,7 @@ export default function Chat({ user }) {
   const [activeId, setActiveId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [peer, setPeer] = useState({ online: false, typing: false, readUpTo: 0 });
+  const [peerProfile, setPeerProfile] = useState(null); // used when the friend isn't in the list yet (deep link)
   const [draft, setDraft] = useState('');
   const [error, setError] = useState(null);
   const [loadingThread, setLoadingThread] = useState(false);
@@ -124,6 +131,7 @@ export default function Chat({ user }) {
     stickRef.current = true;
     setMessages([]);
     setPeer({ online: false, typing: false, readUpTo: 0 });
+    setPeerProfile(null);
     setError(null);
     if (!activeId) return undefined;
 
@@ -136,6 +144,7 @@ export default function Chat({ user }) {
       try {
         const data = await api(`thread?friendId=${encodeURIComponent(activeId)}&after=${lastIdRef.current}`);
         if (stopped || activeRef.current !== activeId) return;
+        if (data.profile) setPeerProfile(data.profile);
         mergeMessages(data.messages);
         setPeer({ online: data.online, typing: data.typing, readUpTo: data.friendReadUpTo });
         setError((e) => (e && e.sticky ? e : null));
@@ -272,7 +281,7 @@ export default function Chat({ user }) {
   const shownFriends = useMemo(() => {
     if (!friends) return [];
     const q = filter.trim().toLowerCase();
-    return q ? friends.filter((f) => (f.username || '').toLowerCase().includes(q)) : friends;
+    return q ? friends.filter((f) => `${f.name || ''} ${f.username || ''}`.toLowerCase().includes(q)) : friends;
   }, [friends, filter]);
 
   const timeFmt = useMemo(() => new Intl.DateTimeFormat(lang === 'ar' ? 'ar-EG' : 'en-GB', { hour: '2-digit', minute: '2-digit' }), [lang]);
@@ -301,7 +310,8 @@ export default function Chat({ user }) {
   });
 
   const totalUnread = (friends || []).reduce((n, f) => n + (f.id === activeId ? 0 : (f.unread || 0)), 0);
-  const peerName = active?.username || t.chatUnknown;
+  const peerName = active?.name || peerProfile?.name || active?.username || t.chatUnknown;
+  const peerAvatar = active?.avatar || peerProfile?.avatar || null;
 
   return (
     <div className="shell">
@@ -360,10 +370,10 @@ export default function Chat({ user }) {
                 className={`chat-friend${f.id === activeId ? ' active' : ''}`}
                 onClick={() => openFriend(f.id)}
               >
-                <Avatar name={f.username} online={f.online} />
+                <Avatar name={f.name} src={f.avatar} online={f.online} />
                 <span className="chat-friend-body">
                   <span className="chat-friend-top">
-                    <strong>{f.username || t.chatUnknown}</strong>
+                    <strong>{f.name || f.username || t.chatUnknown}</strong>
                     {f.last && <time>{timeFmt.format(f.last.at)}</time>}
                   </span>
                   <span className="chat-friend-preview">
@@ -391,9 +401,12 @@ export default function Chat({ user }) {
             <>
               <header className="chat-head">
                 <button type="button" className="icon-btn chat-back" onClick={closeThread} aria-label={t.chatBack}>←</button>
-                <Avatar name={peerName} online={peer.online} size={38} />
+                <Avatar name={peerName} src={peerAvatar} online={peer.online} size={40} />
                 <div className="chat-head-body">
                   <strong>{peerName}</strong>
+                  {(active?.username || peerProfile?.username) && (active?.username || peerProfile?.username) !== peerName && (
+                    <span className="chat-handle">@{active?.username || peerProfile?.username}</span>
+                  )}
                   <span className={`chat-status${peer.online ? ' on' : ''}`}>
                     {peer.typing ? t.chatTyping : peer.online ? t.chatOnline : t.chatOffline}
                   </span>
@@ -414,28 +427,37 @@ export default function Chat({ user }) {
                   const seen = mine && m.id != null && m.id === lastMineId && m.id <= peer.readUpTo;
                   return (
                     <div className={`chat-row ${mine ? 'mine' : 'theirs'}${grouped ? ' grouped' : ''}`} key={row.key}>
-                      <div className={`chat-bubble${m.pending ? ' pending' : ''}${m.failed ? ' failed' : ''}`} dir="auto">
-                        {m.text}
-                      </div>
-                      {!grouped || m.failed || seen ? (
-                        <div className="chat-meta">
-                          <time>{timeFmt.format(m.at)}</time>
-                          {mine && m.pending && !m.failed && <span>{t.chatSending}</span>}
-                          {mine && !m.pending && <span className={seen ? 'seen' : ''}>{seen ? `✓✓ ${t.chatSeen}` : '✓'}</span>}
-                          {m.failed && (
-                            <button type="button" className="chat-retry" onClick={() => retry(m)}>
-                              {m.failText || t.chatFailed} · {t.chatRetry}
-                            </button>
-                          )}
+                      {!mine && (
+                        <div className="chat-side-avatar">
+                          {!grouped && <Avatar name={peerName} src={peerAvatar} size={30} />}
                         </div>
-                      ) : null}
+                      )}
+                      <div className="chat-col">
+                        {!mine && !grouped && <span className="chat-author">{peerName}</span>}
+                        <div className={`chat-bubble${m.pending ? ' pending' : ''}${m.failed ? ' failed' : ''}`} dir="auto">
+                          {m.text}
+                        </div>
+                        {!grouped || m.failed || seen ? (
+                          <div className="chat-meta">
+                            <time>{timeFmt.format(m.at)}</time>
+                            {mine && m.pending && !m.failed && <span>{t.chatSending}</span>}
+                            {mine && !m.pending && <span className={seen ? 'seen' : ''}>{seen ? `✓✓ ${t.chatSeen}` : '✓'}</span>}
+                            {m.failed && (
+                              <button type="button" className="chat-retry" onClick={() => retry(m)}>
+                                {m.failText || t.chatFailed} · {t.chatRetry}
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                   );
                 })}
 
                 {peer.typing && (
                   <div className="chat-row theirs">
-                    <div className="chat-bubble typing" aria-label={t.chatTyping}><i /><i /><i /></div>
+                    <div className="chat-side-avatar"><Avatar name={peerName} src={peerAvatar} size={30} /></div>
+                    <div className="chat-col"><div className="chat-bubble typing" aria-label={t.chatTyping}><i /><i /><i /></div></div>
                   </div>
                 )}
               </div>

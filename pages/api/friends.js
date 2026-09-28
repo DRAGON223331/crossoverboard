@@ -1,5 +1,6 @@
 import { getSession } from '../../lib/session';
 import { getFriends, addFriend, removeFriend } from '../../lib/redis';
+import { withProfiles } from '../../lib/profiles';
 
 const ERROR_MESSAGES = {
   SELF_FRIEND: "You can't add yourself.",
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
 
   if (req.method === 'GET') {
     try {
-      const friends = await getFriends(userId);
+      const friends = await withProfiles(await getFriends(userId));
       return res.status(200).json({ friends });
     } catch (err) {
       return res.status(502).json({ error: err.message });
@@ -40,12 +41,12 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'add') {
-      const friends = await addFriend(userId, friendId);
+      const friends = await withProfiles(await addFriend(userId, friendId));
       return res.status(200).json({ friends });
     }
 
     if (action === 'remove') {
-      const friends = await removeFriend(userId, friendId);
+      const friends = await withProfiles(await removeFriend(userId, friendId));
       return res.status(200).json({ friends });
     }
 

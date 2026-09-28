@@ -38,8 +38,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { friendId, text, clientId } = req.body || {};
       if (action === 'send') {
-        const name = user.global_name || user.username;
-        const message = await sendMessage(user.id, name, friendId, text, clientId);
+        const message = await sendMessage(user.id, friendId, text, clientId);
         return res.status(200).json({ message });
       }
       if (action === 'typing') {
