@@ -15,6 +15,7 @@ const ERROR_MESSAGES = {
   NOT_OWNED: "You don't own that yet.",
   WRONG_SLOT: 'That item cannot go there.',
   INSUFFICIENT_POINTS: 'Not enough points.',
+  ALL_OWNED: 'You already own everything.',
   SELF_GIFT: "You can't gift yourself.",
   NOT_FRIENDS: 'You can only gift mutual friends — add them with !friend in Discord first.',
 };
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
 
   try {
     if (action === 'buy') {
-      if (!getItem(itemId)) return res.status(400).json({ error: 'Unknown item.' });
+      if (!getItem(itemId) || getItem(itemId).lootOnly) return res.status(400).json({ error: 'Unknown item.' });
       const inventory = await purchaseItem(userId, itemId);
       return res.status(200).json({ inventory });
     }
@@ -70,7 +71,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'gift') {
-      if (!getItem(itemId)) return res.status(400).json({ error: 'Unknown item.' });
+      if (!getItem(itemId) || getItem(itemId).lootOnly) return res.status(400).json({ error: 'Unknown item.' });
       if (!friendId) return res.status(400).json({ error: 'Choose a friend to gift.' });
       const result = await purchaseItemForGift(userId, friendId, itemId);
       return res.status(200).json({ buyerPoints: result.buyerPoints });

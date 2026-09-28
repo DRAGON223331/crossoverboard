@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../lib/session';
 import { getUserInventory, getFriends } from '../lib/redis';
-import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, getItem, emojiUrl } from '../lib/storeCatalog';
+import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, PITY_THRESHOLD, RARITIES, getItem, isTitle, isUnicodeEmoji, emojiUrl } from '../lib/storeCatalog';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -22,12 +22,22 @@ export async function getServerSideProps({ req }) {
 
 function SkinPreview({ skin }) {
   if (!skin) return <span style={{ fontSize: 20 }}>❌ ⭕</span>;
+  if (isUnicodeEmoji(skin.x)) return <span style={{ fontSize: 26 }}>{skin.x} {skin.o}</span>;
   return (
     <span style={{ display: 'inline-flex', gap: 6 }}>
       <img src={emojiUrl(skin.x)} alt="" width={28} height={28} />
       <img src={emojiUrl(skin.o)} alt="" width={28} height={28} />
     </span>
   );
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const LOOT_FRAMES = ['🎁', '📦', '✨'];
+
+function RarityPill({ rarity, lang }) {
+  const r = RARITIES[rarity];
+  if (!r) return null;
+  return <span className={`rarity-pill rarity-${rarity}`}>{lang === 'ar' ? r.ar : r.en}</span>;
 }
 
 function GiftModal({ item, name, friends, onClose, onSent, t }) {
@@ -98,7 +108,7 @@ function SkinCard({ id, skin, inventory, t, lang, busyId, onBuy, onEquip, onGift
   const busy = busyId === id;
 
   return (
-    <article className={`store-item-card fade-in-up${owned ? ' owned' : ''}`}>
+    <article className={`store-item-card fade-in-up rarity-${skin.rarity}${owned ? ' owned' : ''}`}>
       <div className="store-item-icon"><SkinPreview skin={skin} /></div>
       {equipped ? (
         <span className="store-badge equipped">{t.storeEquipped}</span>
@@ -107,7 +117,7 @@ function SkinCard({ id, skin, inventory, t, lang, busyId, onBuy, onEquip, onGift
       ) : null}
       <div className="store-item-name">{name} — XO</div>
       <div className="store-item-footer">
-        <span className="store-item-price">{skin.price} {t.storePoints}</span>
+        {skin.lootOnly ? <RarityPill rarity={skin.rarity} lang={lang} /> : <span className="store-item-price">{skin.price} {t.storePoints}</span>}
         <div className="store-item-actions">
           {owned ? (
             !equipped && (
@@ -138,7 +148,7 @@ function TitleCard({ id, title, inventory, t, lang, busyId, onBuy, onEquip, onGi
   const busy = busyId === id;
 
   return (
-    <article className={`store-item-card fade-in-up${owned ? ' owned' : ''}`}>
+    <article className={`store-item-card fade-in-up rarity-${title.rarity}${owned ? ' owned' : ''}`}>
       <div className="store-item-icon" style={{ fontSize: 28 }}>{title.icon}</div>
       {equipped ? (
         <span className="store-badge equipped">{t.storeEquipped}</span>
@@ -147,7 +157,7 @@ function TitleCard({ id, title, inventory, t, lang, busyId, onBuy, onEquip, onGi
       ) : null}
       <div className="store-item-name">{name}</div>
       <div className="store-item-footer">
-        <span className="store-item-price">{title.price} {t.storePoints}</span>
+        {title.lootOnly ? <RarityPill rarity={title.rarity} lang={lang} /> : <span className="store-item-price">{title.price} {t.storePoints}</span>}
         <div className="store-item-actions">
           {owned ? (
             equipped ? (
@@ -182,6 +192,8 @@ export default function Store({ user, initialInventory, initialFriends }) {
   const [status, setStatus] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [giftTarget, setGiftTarget] = useState(null); // { item: {id}, name }
+  const [lootFrame, setLootFrame] = useState(0); // 🎁 → 📦 → ✨ while a box is opening
+  const [reveal, setReveal] = useState(null); // result of the last box: { item, duplicate, free, guaranteedNext }
 
   async function post(body) {
     const res = await fetch('/api/store', {
@@ -211,18 +223,30 @@ export default function Store({ user, initialInventory, initialFriends }) {
   async function handleLootBox() {
     setBusyId('lootbox');
     setStatus(null);
+    setReveal(null);
+    setLootFrame(0);
+    const ticker = setInterval(() => setLootFrame((f) => (f + 1) % LOOT_FRAMES.length), 550);
+    const started = Date.now();
     try {
       const data = await post({ action: 'lootbox' });
+      // Let the animation play for a moment before showing the result (and the
+      // new balance, so nothing is spoiled early).
+      await sleep(Math.max(0, 1900 - (Date.now() - started)));
       setInventory(data.inventory);
-      const item = getItem(data.itemId);
-      const name = item ? (lang === 'ar' ? item.ar : item.en) : data.itemId;
-      setStatus({
-        type: data.duplicate ? 'error' : 'ok',
-        text: data.duplicate ? t.storeLootDuplicate(name, LOOT_BOX_COST) : t.storeLootNew(name),
+      setReveal({
+        item: getItem(data.itemId),
+        duplicate: data.duplicate,
+        free: data.free,
+        guaranteedNext: data.inventory.lootMisses >= PITY_THRESHOLD,
       });
     } catch (err) {
-      setStatus({ type: 'error', text: err.message === 'Not enough points.' ? t.storeNotEnoughPoints : (err.message || t.storeLootFailed) });
+      const msg = err.message;
+      setStatus({
+        type: 'error',
+        text: msg === 'Not enough points.' ? t.storeNotEnoughPoints : msg === 'You already own everything.' ? t.storeLootOwnAll : (msg || t.storeLootFailed),
+      });
     } finally {
+      clearInterval(ticker);
       setBusyId(null);
     }
   }
@@ -270,26 +294,72 @@ export default function Store({ user, initialInventory, initialFriends }) {
       {status && <div className={`banner ${status.type}`}>{status.text}</div>}
 
       <div className="store-loot-card fade-in-up d2">
-        <div className="store-loot-info">
-          <span className={`store-loot-icon${busyId === 'lootbox' ? ' shake' : ''}`}>🎁</span>
-          <div>
-            <h3>{t.storeLootTitle}</h3>
-            <p>{t.storeLootLede(LOOT_BOX_COST)}</p>
+        <div className="store-loot-main">
+          <div className="store-loot-info">
+            <span className={`store-loot-icon${busyId === 'lootbox' ? ' shake' : ''}`}>
+              {busyId === 'lootbox' ? LOOT_FRAMES[lootFrame] : '🎁'}
+            </span>
+            <div>
+              <h3>{t.storeLootTitle}</h3>
+              <p>{t.storeLootLede(LOOT_BOX_COST)}</p>
+            </div>
           </div>
+          <button
+            type="button"
+            className="btn glow"
+            disabled={busyId === 'lootbox' || (inventory.freeBoxes <= 0 && inventory.points < LOOT_BOX_COST)}
+            onClick={handleLootBox}
+          >
+            {busyId === 'lootbox'
+              ? t.storeLootOpening
+              : inventory.freeBoxes > 0
+                ? t.storeLootButtonFree(inventory.freeBoxes)
+                : t.storeLootButton(LOOT_BOX_COST)}
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn glow"
-          disabled={busyId === 'lootbox' || inventory.points < LOOT_BOX_COST}
-          onClick={handleLootBox}
-        >
-          {busyId === 'lootbox' ? t.storeLootOpening : t.storeLootButton(LOOT_BOX_COST)}
-        </button>
+
+        {reveal && (
+          <div className={`store-loot-reveal rarity-${reveal.item.rarity}${reveal.duplicate ? ' dup' : ''}${reveal.item.rarity === 'legendary' && !reveal.duplicate ? ' legendary' : ''}`}>
+            <span className="store-loot-reveal-icon">
+              {isTitle(reveal.item) ? reveal.item.icon : <SkinPreview skin={reveal.item} />}
+            </span>
+            <div className="store-loot-reveal-body">
+              <span className="store-loot-reveal-name">{lang === 'ar' ? reveal.item.ar : reveal.item.en}</span>
+              <span>
+                <RarityPill rarity={reveal.item.rarity} lang={lang} />
+                {reveal.item.lootOnly && <span className="hint no-top" style={{ marginInlineStart: 8 }}>{t.storeLootExclusive}</span>}
+              </span>
+              <span>
+                {reveal.duplicate
+                  ? (reveal.free ? t.storeLootRevealDupFree : t.storeLootRevealDup(LOOT_BOX_COST))
+                  : t.storeLootRevealNew}
+              </span>
+              {reveal.guaranteedNext && <span className="store-loot-free">{t.storeLootNextGuaranteed}</span>}
+            </div>
+          </div>
+        )}
+
+        <div className="store-loot-notes">
+          <div className="store-loot-odds">
+            <strong>{t.storeLootOdds}:</strong>
+            {Object.entries(RARITIES).map(([key, r]) => (
+              <span key={key} className={`rarity-pill rarity-${key}`}>
+                {lang === 'ar' ? r.ar : r.en} {r.weight}%
+              </span>
+            ))}
+          </div>
+          <span>{t.storeLootPityNote(PITY_THRESHOLD)}</span>
+          <span>{t.storeLootDailyNote}</span>
+          {inventory.lootMisses > 0 && (
+            <span>{t.storeLootPityProgress(Math.min(inventory.lootMisses, PITY_THRESHOLD), PITY_THRESHOLD)}</span>
+          )}
+          {inventory.freeBoxes > 0 && <span className="store-loot-free">{t.storeLootFreeCount(inventory.freeBoxes)}</span>}
+        </div>
       </div>
 
       <h2 className="fade-in-up d2">{t.storeSectionSkins}</h2>
       <div className="store-grid fade-in-up d3">
-        {Object.entries(SKINS).map(([id, skin]) => (
+        {Object.entries(SKINS).filter(([id, skin]) => !skin.lootOnly || inventory.items.includes(id)).map(([id, skin]) => (
           <SkinCard
             key={id} id={id} skin={skin} inventory={inventory} t={t} lang={lang} busyId={busyId}
             onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
@@ -299,7 +369,7 @@ export default function Store({ user, initialInventory, initialFriends }) {
 
       <h2 className="fade-in-up d2" style={{ marginTop: 28 }}>{t.storeSectionTitles}</h2>
       <div className="store-grid fade-in-up d3">
-        {Object.entries(TITLES).map(([id, title]) => (
+        {Object.entries(TITLES).filter(([id, title]) => !title.lootOnly || inventory.items.includes(id)).map(([id, title]) => (
           <TitleCard
             key={id} id={id} title={title} inventory={inventory} t={t} lang={lang} busyId={busyId}
             onBuy={handleBuy} onEquip={handleEquip} onGift={(item, name) => setGiftTarget({ item, name })}
