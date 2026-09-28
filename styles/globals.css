@@ -1462,6 +1462,20 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
 }
 .store-badge.equipped { background: var(--accent); color: var(--accent-ink); }
 
+.store-loot-card {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  padding: 20px 22px; margin-bottom: 20px;
+  background: var(--panel); border: 1px solid var(--accent); border-radius: var(--radius-lg);
+}
+.store-loot-info { display: flex; align-items: center; gap: 16px; flex: 1 1 260px; }
+.store-loot-icon { font-size: 44px; line-height: 1; }
+.store-loot-info p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.store-loot-info h3 { margin: 0; }
+.store-loot-icon.shake { animation: lootShake .6s ease-in-out infinite; }
+@keyframes lootShake {
+  0%, 100% { transform: rotate(0); } 25% { transform: rotate(-12deg) scale(1.1); } 75% { transform: rotate(12deg) scale(1.1); }
+}
+
 .store-gift-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center;
   padding: 20px; z-index: 50;

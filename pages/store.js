@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../lib/session';
 import { getUserInventory, getFriends } from '../lib/redis';
-import { SKINS, TITLES, COMING_SOON, emojiUrl } from '../lib/storeCatalog';
+import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, getItem, emojiUrl } from '../lib/storeCatalog';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -208,6 +208,25 @@ export default function Store({ user, initialInventory, initialFriends }) {
     }
   }
 
+  async function handleLootBox() {
+    setBusyId('lootbox');
+    setStatus(null);
+    try {
+      const data = await post({ action: 'lootbox' });
+      setInventory(data.inventory);
+      const item = getItem(data.itemId);
+      const name = item ? (lang === 'ar' ? item.ar : item.en) : data.itemId;
+      setStatus({
+        type: data.duplicate ? 'error' : 'ok',
+        text: data.duplicate ? t.storeLootDuplicate(name, LOOT_BOX_COST) : t.storeLootNew(name),
+      });
+    } catch (err) {
+      setStatus({ type: 'error', text: err.message === 'Not enough points.' ? t.storeNotEnoughPoints : (err.message || t.storeLootFailed) });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function handleEquip(slot, itemId) {
     setBusyId(itemId || slot);
     try {
@@ -249,6 +268,24 @@ export default function Store({ user, initialInventory, initialFriends }) {
       </div>
 
       {status && <div className={`banner ${status.type}`}>{status.text}</div>}
+
+      <div className="store-loot-card fade-in-up d2">
+        <div className="store-loot-info">
+          <span className={`store-loot-icon${busyId === 'lootbox' ? ' shake' : ''}`}>🎁</span>
+          <div>
+            <h3>{t.storeLootTitle}</h3>
+            <p>{t.storeLootLede(LOOT_BOX_COST)}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          className="btn glow"
+          disabled={busyId === 'lootbox' || inventory.points < LOOT_BOX_COST}
+          onClick={handleLootBox}
+        >
+          {busyId === 'lootbox' ? t.storeLootOpening : t.storeLootButton(LOOT_BOX_COST)}
+        </button>
+      </div>
 
       <h2 className="fade-in-up d2">{t.storeSectionSkins}</h2>
       <div className="store-grid fade-in-up d3">

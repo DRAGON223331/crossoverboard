@@ -2,6 +2,7 @@ import { getSession } from '../../lib/session';
 import {
   getUserInventory,
   purchaseItem,
+  openLootBox,
   equipItem,
   purchaseItemForGift,
   getFriends,
@@ -48,6 +49,11 @@ export default async function handler(req, res) {
       if (!getItem(itemId)) return res.status(400).json({ error: 'Unknown item.' });
       const inventory = await purchaseItem(userId, itemId);
       return res.status(200).json({ inventory });
+    }
+
+    if (action === 'lootbox') {
+      const result = await openLootBox(userId);
+      return res.status(200).json(result);
     }
 
     if (action === 'equip') {
