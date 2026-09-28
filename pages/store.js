@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../lib/session';
 import { getUserInventory, getFriends } from '../lib/redis';
-import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, PITY_THRESHOLD, RARITIES, getItem, isTitle, isUnicodeEmoji, emojiUrl } from '../lib/storeCatalog';
+import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, PITY_THRESHOLD, RARITIES, getItem, isTitle, emojiUrl } from '../lib/storeCatalog';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -22,7 +22,6 @@ export async function getServerSideProps({ req }) {
 
 function SkinPreview({ skin }) {
   if (!skin) return <span style={{ fontSize: 20 }}>❌ ⭕</span>;
-  if (isUnicodeEmoji(skin.x)) return <span style={{ fontSize: 26 }}>{skin.x} {skin.o}</span>;
   return (
     <span style={{ display: 'inline-flex', gap: 6 }}>
       <img src={emojiUrl(skin.x)} alt="" width={28} height={28} />
