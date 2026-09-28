@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { getSession } from '../lib/session';
 import { getFriends } from '../lib/redis';
 import { useLanguage } from '../lib/i18n';
@@ -169,14 +170,17 @@ export default function Friends({ user, initialFriends }) {
                 <strong>{f.username ? `@${f.username}` : f.id}</strong>
                 {f.at ? <span className="hint no-top" style={{ display: 'block' }}>{new Date(f.at).toLocaleDateString()}</span> : null}
               </div>
-              <button
-                type="button"
-                className="btn secondary"
-                disabled={busyId === f.id}
-                onClick={() => handleRemove(f.id)}
-              >
-                {busyId === f.id ? t.friendsRemoving : t.friendsRemoveButton}
-              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Link href={`/chat?with=${f.id}`} className="btn glow">💬 {t.navChat}</Link>
+                <button
+                  type="button"
+                  className="btn secondary"
+                  disabled={busyId === f.id}
+                  onClick={() => handleRemove(f.id)}
+                >
+                  {busyId === f.id ? t.friendsRemoving : t.friendsRemoveButton}
+                </button>
+              </div>
             </div>
           ))
         )}

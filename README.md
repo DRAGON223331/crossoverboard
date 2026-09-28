@@ -115,3 +115,30 @@ The game-room health check resolves the bot's actual user ID through `/users/@me
 
 ### AutoMod permissions
 The dashboard reads Discord AutoMod rules using the dashboard bot token. The bot must have **Manage Server** (or **Administrator**) in the target server. Using the logged-in user's OAuth bearer token for `/guilds/:guild_id/auto-moderation/rules` can return `401 Unauthorized`, so the dashboard intentionally does not use that token for AutoMod.
+
+
+## Chat (`/chat`)
+
+Real-time chat between mutual friends, inside the dashboard. It reuses the
+bot's friend list and block list, so only people who are friends in
+Crossover can talk, and blocking/unfriending closes the chat.
+
+- **No new setup** — same Upstash Redis, same env vars. Data lives under
+  `crossover:chat:*` keys and never touches the bot's JSON blobs.
+- **Saved history** — last 300 messages per conversation, so an offline
+  friend sees everything when they come back (the bot's `!chat` relay loses
+  messages if the other side is away).
+- **Presence, unread badges, typing indicator, "Seen" receipts**, optimistic
+  sending with retry, day separators, Arabic/RTL support, mobile layout.
+- **Anti-flood**: 12 messages per 10 seconds per user; 1000 characters max.
+- **How "live" works**: Vercel functions can't hold WebSockets, so the page
+  polls (every 2s for the open conversation, 6s for the friends list, 15s
+  for the nav badge) and pauses while the tab is hidden. Each poll is 1–2
+  Redis round trips (Upstash `/pipeline`).
+- The friends page now has a 💬 button that opens `/chat?with=<friendId>`.
+
+The bot's own `!chat` / `!end` DM relay is untouched and keeps working.
+
+Files: `lib/chat.js`, `pages/api/chat/[action].js`, `pages/chat.js`,
+`components/ChatBadge.js` (+ small edits in `lib/redis.js`, `lib/i18n.js`,
+`components/NavBar.js`, `pages/friends.js`, `styles/globals.css`).

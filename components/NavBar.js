@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { useLanguage } from '../lib/i18n';
 import Notifications from './Notifications';
 import ThemeToggle from './ThemeToggle';
+import ChatBadge from './ChatBadge';
 
 export default function NavBar({ active }) {
   const { t } = useLanguage();
@@ -11,6 +12,7 @@ export default function NavBar({ active }) {
     { key: 'servers', href: '/servers', label: t.navServers },
     { key: 'players', href: '/players', label: t.navPlayers },
     { key: 'friends', href: '/friends', label: t.navFriends },
+    { key: 'chat', href: '/chat', label: t.navChat },
     { key: 'store', href: '/store', label: t.navStore },
     { key: 'commands', href: '/commands', label: t.navCommands },
     { key: 'profile', href: '/profile', label: t.navProfile },
@@ -30,6 +32,7 @@ export default function NavBar({ active }) {
           className={`site-nav-link${active === item.key ? ' active' : ''}`}
         >
           {item.label}
+          {item.key === 'chat' && active !== 'chat' && <ChatBadge />}
         </Link>
       ))}
       <div className="nav-tools">
