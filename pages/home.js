@@ -41,6 +41,7 @@ export default function Home({ user, profile, guilds, botStatus }) {
   const engines = profile?.engines || [
     { key: 'xo', label: 'Tic Tac Toe', icon: '⭕❌', played: 0, wins: 0, completed: false },
     { key: 'connect4', label: 'Connect 4', icon: '🔴🟡', played: 0, wins: 0, completed: false },
+    { key: 'memory', label: 'Memory Match', icon: '🃏', played: 0, wins: 0, completed: false },
     { key: 'rps', label: 'Rock Paper Scissors', icon: '🪨📄✂️', played: 0, wins: 0, completed: false },
     { key: 'fast', label: 'Fastest Click', icon: '⚡', played: 0, wins: 0, completed: false },
     { key: 'flag', label: 'Guess the Flag', icon: '🌍', played: 0, wins: 0, completed: false },
