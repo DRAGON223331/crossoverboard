@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { getSession } from '../lib/session';
 import { getUserInventory, getFriends } from '../lib/redis';
-import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, PITY_THRESHOLD, RARITIES, getItem, isTitle, emojiUrl } from '../lib/storeCatalog';
+import { SKINS, TITLES, COMING_SOON, LOOT_BOX_COST, RARITIES, getItem, isTitle, emojiUrl } from '../lib/storeCatalog';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
@@ -236,7 +236,6 @@ export default function Store({ user, initialInventory, initialFriends }) {
         item: getItem(data.itemId),
         duplicate: data.duplicate,
         free: data.free,
-        guaranteedNext: data.inventory.lootMisses >= PITY_THRESHOLD,
       });
     } catch (err) {
       const msg = err.message;
@@ -333,7 +332,6 @@ export default function Store({ user, initialInventory, initialFriends }) {
                   ? (reveal.free ? t.storeLootRevealDupFree : t.storeLootRevealDup(LOOT_BOX_COST))
                   : t.storeLootRevealNew}
               </span>
-              {reveal.guaranteedNext && <span className="store-loot-free">{t.storeLootNextGuaranteed}</span>}
             </div>
           </div>
         )}
@@ -347,11 +345,7 @@ export default function Store({ user, initialInventory, initialFriends }) {
               </span>
             ))}
           </div>
-          <span>{t.storeLootPityNote(PITY_THRESHOLD)}</span>
           <span>{t.storeLootDailyNote}</span>
-          {inventory.lootMisses > 0 && (
-            <span>{t.storeLootPityProgress(Math.min(inventory.lootMisses, PITY_THRESHOLD), PITY_THRESHOLD)}</span>
-          )}
           {inventory.freeBoxes > 0 && <span className="store-loot-free">{t.storeLootFreeCount(inventory.freeBoxes)}</span>}
         </div>
       </div>
