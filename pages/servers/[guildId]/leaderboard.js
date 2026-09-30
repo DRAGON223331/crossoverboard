@@ -60,6 +60,7 @@ export default function GuildLeaderboard({ user, guildId, guildName, stats, lead
         <nav className="guild-sidebar">
           <a className="tab" href={`/servers/${guildId}`}>⚙️ {t.tabManage}</a>
           <span className="tab active">🏆 {t.tabLeaderboard}</span>
+          <a className="tab" href={`/servers/${guildId}/premium`}>💎 {t.tabPremium}</a>
         </nav>
 
         <div className="guild-content">

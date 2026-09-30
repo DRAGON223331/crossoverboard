@@ -69,6 +69,24 @@ the game room channel" feature to work there — this is already requested by
 the bot's own `!invite` link, so nothing extra is needed if the server owner
 used that link.
 
+## 💎 Premium tab (per server)
+
+Every server page has a **Premium** tab (`/servers/<id>/premium`). It reads the
+same Redis keys as the bot (`crossover:premium`, `crossover:game-themes`):
+
+- **No active Premium** → the tab is visible but locked (blurred preview + 🔒).
+  Premium can only be granted/extended by the bot owner (`!premium add …`);
+  the dashboard never grants it.
+- **Active Premium** → edit allowed members, Mafia / Musical Chairs player
+  limits and game colors. Members + limits: server owner (or bot owner) only,
+  same rule as `!premium`. Colors: also anyone on the Premium member list,
+  same rule as `!gametheme`. Other admins get a read-only view.
+
+**Bot side:** `handlers/premium.js` and `handlers/gameTheme.js` now poll Redis
+every 10 s (like prefix/language do), so dashboard edits reach the running bot
+without a restart. Deploy the updated bot too, or the bot will only see the
+changes after its next restart.
+
 ## Local development
 
 ```bash

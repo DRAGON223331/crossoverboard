@@ -157,6 +157,7 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
         <nav className="guild-sidebar">
           <span className="tab active">⚙️ {t.tabManage}</span>
           <a className="tab" href={`/servers/${guildId}/leaderboard`}>🏆 {t.tabLeaderboard}</a>
+          <a className="tab" href={`/servers/${guildId}/premium`}>💎 {t.tabPremium}</a>
         </nav>
 
         <div className="guild-content">
