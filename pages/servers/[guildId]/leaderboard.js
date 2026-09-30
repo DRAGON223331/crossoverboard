@@ -1,4 +1,6 @@
 import { getSession } from '../../../lib/session';
+import { getGuildEntry, canOpenPremiumTab } from '../../../lib/premium';
+import { isOwner } from '../../../lib/owner';
 import { userCanManageGuild, fetchUserGuilds } from '../../../lib/discord';
 import { getGuildStats, getGuildLeaderboard } from '../../../lib/redis';
 import { useLanguage } from '../../../lib/i18n';
@@ -18,6 +20,13 @@ export async function getServerSideProps({ req, params }) {
     getGuildLeaderboard(guildId),
   ]);
   const guild = userGuilds.find((g) => g.id === guildId);
+  const premiumEntry = await getGuildEntry(guildId);
+  const showPremiumTab = canOpenPremiumTab(premiumEntry, {
+    userId: session.user.id,
+    isServerOwner: guild?.owner === true,
+    isBotOwner: isOwner(session),
+    inGuild: Boolean(guild),
+  });
 
   return {
     props: {
@@ -26,11 +35,12 @@ export async function getServerSideProps({ req, params }) {
       guildName: guild?.name || 'This server',
       stats,
       leaderboard,
+      showPremiumTab,
     },
   };
 }
 
-export default function GuildLeaderboard({ user, guildId, guildName, stats, leaderboard }) {
+export default function GuildLeaderboard({ user, guildId, guildName, stats, leaderboard, showPremiumTab }) {
   const { t } = useLanguage();
 
   return (
@@ -60,7 +70,7 @@ export default function GuildLeaderboard({ user, guildId, guildName, stats, lead
         <nav className="guild-sidebar">
           <a className="tab" href={`/servers/${guildId}`}>⚙️ {t.tabManage}</a>
           <span className="tab active">🏆 {t.tabLeaderboard}</span>
-          <a className="tab" href={`/servers/${guildId}/premium`}>💎 {t.tabPremium}</a>
+          {showPremiumTab && <a className="tab" href={`/servers/${guildId}/premium`}>💎 {t.tabPremium}</a>}
         </nav>
 
         <div className="guild-content">

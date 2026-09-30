@@ -74,13 +74,22 @@ used that link.
 Every server page has a **Premium** tab (`/servers/<id>/premium`). It reads the
 same Redis keys as the bot (`crossover:premium`, `crossover:game-themes`):
 
-- **No active Premium** → the tab is visible but locked (blurred preview + 🔒).
-  Premium can only be granted/extended by the bot owner (`!premium add …`);
-  the dashboard never grants it.
-- **Active Premium** → edit allowed members, Mafia / Musical Chairs player
-  limits and game colors. Members + limits: server owner (or bot owner) only,
-  same rule as `!premium`. Colors: also anyone on the Premium member list,
-  same rule as `!gametheme`. Other admins get a read-only view.
+**Who can use the Premium tab:** only the server owner, the bot owner, and the
+members the server owner added **from the bot** (`!premium add @user`).
+Having **Manage Server** / **Administrator** in Discord gives no access on its
+own — other admins don't see the tab, are redirected away from
+`/servers/<id>/premium`, and get `403` from `/api/premium/<id>`. The check runs
+server-side on every page load and every request, and a member who leaves the
+server (or is removed with `!premium remove`) loses access immediately.
+
+- **No active Premium** → only the server owner / bot owner see the tab, locked
+  (blurred preview + 🔒). Premium can only be granted/extended by the bot owner
+  (`!premium add …`); the dashboard never grants it.
+- **Active Premium** → the allowed-members list is **read-only on the site**;
+  add/remove it from the bot only (`!premium add` / `!premium remove`). Game
+  colors: server owner + listed members (same rule as `!gametheme`). Mafia /
+  Musical Chairs player limits: server owner (or bot owner) only, same rule as
+  `!premium players`.
 
 **Bot side:** `handlers/premium.js` and `handlers/gameTheme.js` now poll Redis
 every 10 s (like prefix/language do), so dashboard edits reach the running bot

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { getSession } from '../../../lib/session';
 import { getUserGuildAccess } from '../../../lib/discord';
-import { getPremiumOverview } from '../../../lib/premium';
+import { getPremiumOverview, getGuildEntry, canOpenPremiumTab } from '../../../lib/premium';
 import { isOwner } from '../../../lib/owner';
 import { useLanguage } from '../../../lib/i18n';
 import LanguageSwitcher from '../../../components/LanguageSwitcher';
@@ -12,13 +12,21 @@ export async function getServerSideProps({ req, params }) {
 
   const { guildId } = params;
   const access = await getUserGuildAccess(session.accessToken, guildId);
-  if (!access.canManage) return { redirect: { destination: '/servers', permanent: false } };
-
-  const overview = await getPremiumOverview(guildId, {
+  const viewer = {
     userId: session.user.id,
     isServerOwner: access.isServerOwner,
     isBotOwner: isOwner(session),
-  });
+    inGuild: access.inGuild,
+  };
+
+  // Premium settings are only for the server owner, the bot owner, and members the
+  // owner added from the bot (`!premium add`). Manage Server alone is not enough.
+  const entry = await getGuildEntry(guildId);
+  if (!canOpenPremiumTab(entry, viewer)) {
+    return { redirect: { destination: access.canManage ? `/servers/${guildId}` : '/servers', permanent: false } };
+  }
+
+  const overview = await getPremiumOverview(guildId, viewer);
 
   return { props: { user: session.user, guildId, guildName: access.name, overview } };
 }
@@ -93,41 +101,10 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
   const [status, setStatus] = useState(null); // { type: 'ok' | 'error', text }
   const [busy, setBusy] = useState(null);
 
-  const [q, setQ] = useState('');
-  const [results, setResults] = useState(null); // null = nothing to show
-  const [searching, setSearching] = useState(false);
-
   const locked = ov.status !== 'active';
-  const canMembers = !locked && ov.access.members;
+  const canLimits = !locked && ov.access.limits;
   const canThemes = !locked && ov.access.themes;
-  const readOnlyNotice = !locked && !ov.access.members;
-
-  // Live member search — only for plain text; IDs and mentions are added directly.
-  useEffect(() => {
-    const text = q.trim();
-    if (!canMembers || text.length < 2 || /^<@!?\d+>$/.test(text) || /^\d{17,20}$/.test(text)) {
-      setResults(null);
-      setSearching(false);
-      return undefined;
-    }
-    let cancelled = false;
-    setSearching(true);
-    const timer = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/premium/${guildId}?q=${encodeURIComponent(text)}`);
-        const data = await res.json();
-        if (!cancelled) setResults(res.ok ? data.results || [] : []);
-      } catch {
-        if (!cancelled) setResults([]);
-      } finally {
-        if (!cancelled) setSearching(false);
-      }
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [q, canMembers, guildId]);
+  const readOnlyNotice = !locked && !ov.access.limits;
 
   async function call(action, payload, okText, busyKey) {
     setBusy(busyKey);
@@ -148,14 +125,6 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
       return null;
     } finally {
       setBusy(null);
-    }
-  }
-
-  async function handleAdd(userId) {
-    const done = await call('addMember', { userId }, t.premMemberAdded, 'add');
-    if (done) {
-      setQ('');
-      setResults(null);
     }
   }
 
@@ -248,50 +217,7 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
                 <h2>👥 {t.premMembersTitle}</h2>
                 <p className="prem-hint">{t.premMembersHint}</p>
 
-                <form
-                  className="member-add"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (q.trim()) handleAdd(q.trim());
-                  }}
-                >
-                  <input
-                    type="text"
-                    className="prem-input"
-                    value={q}
-                    disabled={!canMembers}
-                    placeholder={t.premSearchPlaceholder}
-                    onChange={(e) => setQ(e.target.value)}
-                  />
-                  <button className="btn" type="submit" disabled={!canMembers || !q.trim() || busy === 'add'}>
-                    {busy === 'add' ? t.working : t.premAdd}
-                  </button>
-                </form>
-
-                {canMembers && (searching || results) && (
-                  <div className="member-results">
-                    {searching && <div className="prem-hint">{t.premSearching}</div>}
-                    {!searching && results && results.length === 0 && <div className="prem-hint">{t.premNoResults}</div>}
-                    {!searching &&
-                      results &&
-                      results.map((r) => (
-                        <button
-                          key={r.id}
-                          type="button"
-                          className="member-result"
-                          disabled={busy === 'add'}
-                          onClick={() => handleAdd(r.id)}
-                        >
-                          {r.avatar ? <img src={r.avatar} alt="" className="member-avatar" /> : <span className="member-avatar" />}
-                          <span className="member-names">
-                            <strong>{r.display}</strong>
-                            <span>@{r.username}</span>
-                          </span>
-                          <span className="member-add-tag">+ {t.premAdd}</span>
-                        </button>
-                      ))}
-                  </div>
-                )}
+                <p className="prem-hint">{t.premMembersBotOnly}</p>
 
                 <div className="member-list">
                   {ov.members.length === 0 && <div className="prem-hint">{t.premNoMembers}</div>}
@@ -304,14 +230,6 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
                           {m.at ? ` · ${t.premAddedOn(fmtDate(m.at, lang))}` : ''}
                         </span>
                       </div>
-                      <button
-                        type="button"
-                        className="btn secondary small"
-                        disabled={!canMembers || busy === `rm-${m.id}`}
-                        onClick={() => call('removeMember', { userId: m.id }, t.premMemberRemoved, `rm-${m.id}`)}
-                      >
-                        {t.premRemove}
-                      </button>
                     </div>
                   ))}
                 </div>
@@ -336,7 +254,7 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
                           min={min}
                           max={max}
                           value={raw === '' ? min : Math.min(max, Math.max(min, Number(raw) || min))}
-                          disabled={!canMembers}
+                          disabled={!canLimits}
                           onChange={(e) => setLimits({ ...limits, [game]: e.target.value })}
                         />
                         <input
@@ -345,7 +263,7 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
                           min={min}
                           max={max}
                           value={raw}
-                          disabled={!canMembers}
+                          disabled={!canLimits}
                           onChange={(e) => setLimits({ ...limits, [game]: e.target.value })}
                         />
                       </div>
@@ -356,7 +274,7 @@ export default function GuildPremium({ user, guildId, guildName, overview }) {
                   <button
                     className="btn glow"
                     type="button"
-                    disabled={!canMembers || !limitsDirty || !limitsValid || busy === 'limits'}
+                    disabled={!canLimits || !limitsDirty || !limitsValid || busy === 'limits'}
                     onClick={saveLimits}
                   >
                     {busy === 'limits' ? t.saving : t.premLimitsSave}

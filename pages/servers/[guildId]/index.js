@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getSession } from '../../../lib/session';
+import { getGuildEntry, canOpenPremiumTab } from '../../../lib/premium';
+import { isOwner } from '../../../lib/owner';
 import { fetchGuildTextChannels, fetchUserGuilds } from '../../../lib/discord';
 import { getGuildSettings } from '../../../lib/redis';
 import { useLanguage } from '../../../lib/i18n';
@@ -22,6 +24,14 @@ export async function getServerSideProps({ req, params }) {
   const canManage = guild && ((permissions & 0x8n) === 0x8n || (permissions & 0x20n) === 0x20n);
   if (!canManage) return { redirect: { destination: '/servers', permanent: false } };
 
+  const premiumEntry = await getGuildEntry(guildId);
+  const showPremiumTab = canOpenPremiumTab(premiumEntry, {
+    userId: session.user.id,
+    isServerOwner: guild.owner === true,
+    isBotOwner: isOwner(session),
+    inGuild: true,
+  });
+
   const roomHealth = null;
   const automod = null;
 
@@ -34,11 +44,12 @@ export async function getServerSideProps({ req, params }) {
       channels: channels.map((c) => ({ id: c.id, name: c.name })),
       initialRoomHealth: roomHealth,
       initialAutomod: automod,
+      showPremiumTab,
     },
   };
 }
 
-export default function GuildSettings({ user, guildId, guildName, initialSettings, channels, initialRoomHealth, initialAutomod }) {
+export default function GuildSettings({ user, guildId, guildName, initialSettings, channels, initialRoomHealth, initialAutomod, showPremiumTab }) {
   const { t } = useLanguage();
   const [prefix, setPrefix] = useState(initialSettings.prefix);
   const [language, setLanguage] = useState(initialSettings.language);
@@ -157,7 +168,7 @@ export default function GuildSettings({ user, guildId, guildName, initialSetting
         <nav className="guild-sidebar">
           <span className="tab active">⚙️ {t.tabManage}</span>
           <a className="tab" href={`/servers/${guildId}/leaderboard`}>🏆 {t.tabLeaderboard}</a>
-          <a className="tab" href={`/servers/${guildId}/premium`}>💎 {t.tabPremium}</a>
+          {showPremiumTab && <a className="tab" href={`/servers/${guildId}/premium`}>💎 {t.tabPremium}</a>}
         </nav>
 
         <div className="guild-content">

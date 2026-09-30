@@ -1,30 +1,15 @@
 import { getSession } from '../../../lib/session';
-import { getUserGuildAccess, fetchGuild, fetchGuildMember, searchGuildMembers } from '../../../lib/discord';
+import { getUserGuildAccess } from '../../../lib/discord';
 import { isOwner } from '../../../lib/owner';
 import {
   isActive,
   getViewerAccess,
+  canOpenPremiumTab,
   getPremiumOverview,
   getGuildEntry,
-  addMember,
-  removeMember,
   setLimits,
   setThemes,
 } from '../../../lib/premium';
-
-function avatarUrl(user) {
-  return user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : null;
-}
-
-// Same label the bot stores when it grants access (`member.user.tag ?? username`).
-function userTag(user) {
-  return user?.discriminator && user.discriminator !== '0' ? `${user.username}#${user.discriminator}` : user?.username || null;
-}
-
-function parseUserId(raw) {
-  const text = String(raw || '').trim();
-  return text.match(/^<@!?(\d{17,20})>$/)?.[1] || text.match(/^(\d{17,20})$/)?.[1] || null;
-}
 
 export default async function handler(req, res) {
   const session = await getSession(req);
@@ -34,39 +19,25 @@ export default async function handler(req, res) {
   if (!/^\d{17,20}$/.test(String(guildId))) return res.status(400).json({ error: 'Bad server id.' });
 
   // Re-checked on every request, never trusted from the client.
+  // Manage Server in Discord is NOT enough: only the server owner, the bot owner,
+  // and members the server owner added from the bot (`!premium add`) get in.
   const access = await getUserGuildAccess(session.accessToken, guildId);
-  if (!access.canManage) return res.status(403).json({ error: 'You do not manage this server.' });
-
-  const viewer = { userId: session.user.id, isServerOwner: access.isServerOwner, isBotOwner: isOwner(session) };
+  const viewer = {
+    userId: session.user.id,
+    isServerOwner: access.isServerOwner,
+    isBotOwner: isOwner(session),
+    inGuild: access.inGuild,
+  };
 
   try {
     const entry = await getGuildEntry(guildId);
+    if (!canOpenPremiumTab(entry, viewer)) {
+      return res.status(403).json({ error: 'Premium settings are only for people the server owner added from the bot.' });
+    }
     const perms = getViewerAccess(entry, viewer);
 
-    // ── Member search (powers the "add member" box) ──────────────────────
-    if (req.method === 'GET') {
-      if (!perms.members) return res.status(403).json({ error: 'Only the server owner can add members.' });
-      const q = String(req.query.q || '').trim().slice(0, 32);
-      if (q.length < 2) return res.status(200).json({ results: [] });
-      try {
-        const found = await searchGuildMembers(guildId, q, 8);
-        const results = found
-          .filter((m) => m?.user && !m.user.bot)
-          .map((m) => ({
-            id: m.user.id,
-            username: m.user.username,
-            display: m.nick || m.user.global_name || m.user.username,
-            avatar: avatarUrl(m.user),
-          }));
-        return res.status(200).json({ results });
-      } catch {
-        // Member search can be unavailable (bot lacks the members intent). The UI falls back to "paste an ID".
-        return res.status(200).json({ results: [], unavailable: true });
-      }
-    }
-
     if (req.method !== 'POST') {
-      res.setHeader('Allow', 'GET, POST');
+      res.setHeader('Allow', 'POST');
       return res.status(405).end();
     }
 
@@ -75,25 +46,11 @@ export default async function handler(req, res) {
     const { action } = req.body || {};
     const ownerOnly = 'Only the server owner can change this.';
 
-    if (action === 'addMember') {
-      if (!perms.members) return res.status(403).json({ error: ownerOnly });
-      const userId = parseUserId(req.body.userId);
-      if (!userId) return res.status(400).json({ error: 'Enter a valid user ID or mention.' });
-      const [guild, member] = await Promise.all([fetchGuild(guildId), fetchGuildMember(guildId, userId)]);
-      if (!member || member.user?.bot) {
-        return res.status(400).json({ error: 'That user is not a member of this server (or is a bot).' });
-      }
-      if (userId === guild.owner_id) {
-        return res.status(400).json({ error: 'The server owner already has Premium automatically.' });
-      }
-      await addMember(guildId, userId, userTag(member.user));
-    } else if (action === 'removeMember') {
-      if (!perms.members) return res.status(403).json({ error: ownerOnly });
-      const userId = parseUserId(req.body.userId);
-      if (!userId) return res.status(400).json({ error: 'Bad user id.' });
-      await removeMember(guildId, userId);
+    if (action === 'addMember' || action === 'removeMember') {
+      // The allowed-members list is managed ONLY from the bot.
+      return res.status(403).json({ error: 'Allowed members can only be managed from the bot (!premium add / remove).' });
     } else if (action === 'saveLimits') {
-      if (!perms.members) return res.status(403).json({ error: ownerOnly });
+      if (!perms.limits) return res.status(403).json({ error: ownerOnly });
       await setLimits(guildId, req.body.limits);
     } else if (action === 'saveThemes') {
       if (!perms.themes) return res.status(403).json({ error: 'You need Premium access in this server to change game colors.' });
