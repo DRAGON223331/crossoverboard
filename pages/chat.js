@@ -5,6 +5,7 @@ import { getSession } from '../lib/session';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
+import AccountMenu from '../components/AccountMenu';
 import { useUnread } from '../components/ChatNotifier';
 import { MAX_LEN, REACTIONS } from '../lib/chatShared';
 
@@ -490,10 +491,7 @@ export default function Chat({ user }) {
             <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
             <LanguageSwitcher />
           </div>
-          <div className="user-chip">
-            <a href="/profile" className="user-link">{user.username}</a>
-            <a href="/api/auth/logout">{t.signOut}</a>
-          </div>
+          <AccountMenu user={user} />
         </div>
       </div>
 

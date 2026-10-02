@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { getSession } from '../lib/session';
-import { getPersonalPremium } from '../lib/personalPremium';
-import { useLanguage } from '../lib/i18n';
-import LanguageSwitcher from '../components/LanguageSwitcher';
-import NavBar from '../components/NavBar';
+import { getSession } from '../../lib/session';
+import { getPersonalPremium } from '../../lib/personalPremium';
+import { useLanguage } from '../../lib/i18n';
+import LanguageSwitcher from '../../components/LanguageSwitcher';
+import NavBar from '../../components/NavBar';
+import AccountMenu from '../../components/AccountMenu';
 
 function fmtDate(ms, lang) {
   return new Date(ms).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', {
@@ -94,10 +95,7 @@ export default function PersonalPremium({ user, overview }) {
             <a className="btn secondary top-invite" href="/api/invite">Add Crossover</a>
             <LanguageSwitcher />
           </div>
-          <div className="user-chip">
-            <a href="/profile" className="user-link">{user.username}</a>
-            <a href="/api/auth/logout">Sign out</a>
-          </div>
+          <AccountMenu user={user} />
         </div>
       </div>
 

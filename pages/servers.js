@@ -5,6 +5,7 @@ import { isOwner } from '../lib/owner';
 import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
+import AccountMenu from '../components/AccountMenu';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -49,13 +50,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
             <a className="btn secondary top-invite" href="/api/invite">{t.addCrossover}</a>
             <LanguageSwitcher />
           </div>
-          <div className="user-chip">
-            <Link href="/profile" prefetch className="user-link">
-              {avatarUrl32 && <img src={avatarUrl32} alt="" />}
-              {user.username}
-            </Link>
-            <a href="/api/auth/logout">{t.signOut}</a>
-          </div>
+          <AccountMenu user={user} />
         </div>
       </div>
 
