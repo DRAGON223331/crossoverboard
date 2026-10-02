@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '../lib/i18n';
+import { avatarUrl } from '../lib/profiles';
 
 export default function AccountMenu({ user }) {
   const { t, lang } = useLanguage();
@@ -26,11 +27,11 @@ export default function AccountMenu({ user }) {
     setOpen(false);
   }
 
-  const avatar = user?.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=64` : null;
+  const avatar = user?.id ? avatarUrl(user.id, user.avatar, 64) : null;
   return (
     <div className="account-menu-wrap" ref={ref}>
       <button type="button" className="account-trigger" onClick={() => setOpen(v => !v)} aria-expanded={open}>
-        {avatar ? <img src={avatar} alt="" /> : <span className="account-avatar-fallback">{(user?.username || '?').slice(0,1).toUpperCase()}</span>}
+        {avatar ? <img src={avatar} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} /> : <span className="account-avatar-fallback">{(user?.username || '?').slice(0,1).toUpperCase()}</span>}
         <span className="account-name">{user?.username}</span><span className="account-chevron">⌄</span>
       </button>
       {open && (

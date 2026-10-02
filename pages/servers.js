@@ -6,6 +6,7 @@ import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
 import AccountMenu from '../components/AccountMenu';
+import { avatarUrl } from '../lib/profiles';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -31,12 +32,8 @@ export async function getServerSideProps({ req }) {
 
 export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
   const { t } = useLanguage();
-  const avatarUrl32 = user.avatar
-    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=32`
-    : null;
-  const avatarUrl96 = user.avatar
-    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=96`
-    : null;
+  const avatarUrl32 = user?.id ? avatarUrl(user.id, user.avatar, 32) : null;
+  const avatarUrl96 = user?.id ? avatarUrl(user.id, user.avatar, 96) : null;
 
   return (
     <div className="shell">

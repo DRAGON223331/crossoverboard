@@ -6,6 +6,7 @@ import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
 import AccountMenu from '../components/AccountMenu';
+import { avatarUrl } from '../lib/profiles';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -48,9 +49,7 @@ function achievementMeta(key, t) {
 export default function Profile({ user, guildCount, owner, profile }) {
   const { t } = useLanguage();
 
-  const avatarUrl = user.avatar
-    ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256`
-    : null;
+  const userAvatarUrl = user?.id ? avatarUrl(user.id, user.avatar, 256) : null;
 
   const wins = profile?.w ?? 0;
   const losses = profile?.l ?? 0;
@@ -96,7 +95,7 @@ export default function Profile({ user, guildCount, owner, profile }) {
         <div className="profile-hero-main">
           <div className="profile-avatar-wrap">
             {avatarUrl ? (
-              <img src={avatarUrl} alt="" className="profile-avatar profile-avatar-large" />
+              <img src={userAvatarUrl} alt="" className="profile-avatar profile-avatar-large" />
             ) : (
               <div className="profile-avatar profile-avatar-large profile-avatar-fallback">{user.username.slice(0, 1)}</div>
             )}
@@ -183,7 +182,7 @@ export default function Profile({ user, guildCount, owner, profile }) {
             <div className="profile-showcase">
               <div className="profile-showcase-avatar">
                 {avatarUrl ? (
-                  <img src={avatarUrl} alt="" />
+                  <img src={userAvatarUrl} alt="" />
                 ) : (
                   <div>{user.username.slice(0, 1)}</div>
                 )}

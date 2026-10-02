@@ -4,6 +4,7 @@ import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
 import AccountMenu from '../components/AccountMenu';
+import { avatarUrl } from '../lib/profiles';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -15,7 +16,7 @@ export async function getServerSideProps({ req }) {
 
 export default function Settings({ user, premium }) {
   const { t, lang } = useLanguage();
-  const avatar = user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png?size=256` : null;
+  const avatar = user?.id ? avatarUrl(user.id, user.avatar, 256) : null;
   const status = premium.status === 'active' ? t.premActive : premium.status === 'expired' ? t.premExpired : t.premNone;
   return (
     <div className="shell">
