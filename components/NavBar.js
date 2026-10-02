@@ -10,6 +10,7 @@ export default function NavBar({ active }) {
   const items = [
     { key: 'home', href: '/home', label: t.navHome },
     { key: 'servers', href: '/servers', label: t.navServers },
+    { key: 'games', href: '/games', label: t.navGames },
     { key: 'players', href: '/players', label: t.navPlayers },
     { key: 'friends', href: '/friends', label: t.navFriends },
     { key: 'chat', href: '/chat', label: t.navChat },
