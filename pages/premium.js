@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { getSession } from '../../lib/session';
-import { getPersonalPremium } from '../../lib/personalPremium';
-import { useLanguage } from '../../lib/i18n';
-import LanguageSwitcher from '../../components/LanguageSwitcher';
-import NavBar from '../../components/NavBar';
+import { getSession } from '../lib/session';
+import { getPersonalPremium } from '../lib/personalPremium';
+import { useLanguage } from '../lib/i18n';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import NavBar from '../components/NavBar';
 
 function fmtDate(ms, lang) {
   return new Date(ms).toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-GB', {
