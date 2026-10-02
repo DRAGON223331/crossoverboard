@@ -95,7 +95,10 @@ export default function Profile({ user, guildCount, owner, profile }) {
         <div className="profile-hero-main">
           <div className="profile-avatar-wrap">
             {userAvatarUrl ? (
-              <img src={userAvatarUrl} alt="" className="profile-avatar profile-avatar-large" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'grid'; }} /><div className="profile-avatar profile-avatar-large profile-avatar-fallback" style={{display:'none'}}>{user.username.slice(0, 1)}</div>
+              <>
+                <img src={userAvatarUrl} alt="" className="profile-avatar profile-avatar-large" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'grid'; }} />
+                <div className="profile-avatar profile-avatar-large profile-avatar-fallback" style={{display:'none'}}>{user.username.slice(0, 1)}</div>
+              </>
             ) : (
               <div className="profile-avatar profile-avatar-large profile-avatar-fallback">{user.username.slice(0, 1)}</div>
             )}
@@ -182,7 +185,10 @@ export default function Profile({ user, guildCount, owner, profile }) {
             <div className="profile-showcase">
               <div className="profile-showcase-avatar">
                 {userAvatarUrl ? (
-                  <img src={userAvatarUrl} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'grid'; }} /><div style={{display:'none'}}> {user.username.slice(0, 1)} </div>
+                  <>
+                    <img src={userAvatarUrl} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'grid'; }} />
+                    <div style={{display:'none'}}> {user.username.slice(0, 1)} </div>
+                  </>
                 ) : (
                   <div>{user.username.slice(0, 1)}</div>
                 )}

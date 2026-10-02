@@ -55,7 +55,16 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
 
       <Link href="/profile" prefetch className="profile-card profile-card-link fade-in-up d1">
         {avatarUrl96 ? (
-          <img src={avatarUrl96} alt="" className="profile-avatar" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling.style.display='grid'; }} /><div className="profile-avatar profile-avatar-fallback" style={{display:'none'}}>{user.username.slice(0, 1)}</div>
+          <div className="profile-avatar-wrap">
+            <img src={avatarUrl96} alt="" className="profile-avatar" onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling;
+              if (fallback) fallback.style.display = 'grid';
+            }} />
+            <div className="profile-avatar profile-avatar-fallback" style={{display: 'none'}}>
+              {user.username.slice(0, 1)}
+            </div>
+          </div>
         ) : (
           <div className="profile-avatar profile-avatar-fallback">{user.username.slice(0, 1)}</div>
         )}
