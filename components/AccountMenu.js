@@ -27,7 +27,7 @@ export default function AccountMenu({ user }) {
     setOpen(false);
   }
 
-  const avatar = user?.id ? avatarProxyUrl(user.id, user.avatar, 64) : null;
+  const avatar = user?.avatarUrl || (user?.id ? avatarProxyUrl(user.id, user.avatar, 64) : null);
   return (
     <div className="account-menu-wrap" ref={ref}>
       <button type="button" className="account-trigger" onClick={() => setOpen(v => !v)} aria-expanded={open}>

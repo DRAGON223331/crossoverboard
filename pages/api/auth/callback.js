@@ -28,7 +28,16 @@ export default async function handler(req, res) {
 
     const cookie = await createSessionCookie({
       accessToken: token.access_token,
-      user: { id: user.id, username: user.username, avatar: user.avatar },
+      user: {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        // Discord returns the avatar hash during OAuth login; keep the exact
+        // CDN URL in the encrypted session so every page can render it.
+        avatarUrl: user.avatar
+          ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${String(user.avatar).startsWith('a_') ? 'gif' : 'png'}?size=256`
+          : `https://cdn.discordapp.com/embed/avatars/${(() => { try { return Number((BigInt(user.id) >> 22n) % 6n); } catch { return 0; } })()}.png?size=256`,
+      },
     });
 
     res.setHeader('Set-Cookie', [cookie, 'oauth_state=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0']);

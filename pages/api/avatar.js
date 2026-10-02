@@ -1,5 +1,4 @@
-// Proxies Discord avatars through the dashboard server so browser/CDN/network
-// restrictions cannot leave profile images as broken icons.
+// Legacy avatar proxy kept for compatibility. Profile UI now uses Discord CDN URLs directly.
 export default async function handler(req, res) {
   const { id, avatar, size = '128' } = req.query;
   if (!/^\d{5,25}$/.test(String(id || ''))) return res.status(400).send('Invalid Discord user id');

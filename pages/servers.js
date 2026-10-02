@@ -32,8 +32,8 @@ export async function getServerSideProps({ req }) {
 
 export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
   const { t } = useLanguage();
-  const avatarUrl32 = user?.id ? avatarProxyUrl(user.id, user.avatar, 32) : null;
-  const avatarUrl96 = user?.id ? avatarProxyUrl(user.id, user.avatar, 96) : null;
+  const avatarUrl32 = user?.avatarUrl || (user?.id ? avatarProxyUrl(user.id, user.avatar, 32) : null);
+  const avatarUrl96 = user?.avatarUrl || (user?.id ? avatarProxyUrl(user.id, user.avatar, 96) : null);
 
   return (
     <div className="shell">

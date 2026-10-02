@@ -49,7 +49,7 @@ function achievementMeta(key, t) {
 export default function Profile({ user, guildCount, owner, profile }) {
   const { t } = useLanguage();
 
-  const userAvatarUrl = user?.id ? avatarProxyUrl(user.id, user.avatar, 256) : null;
+  const userAvatarUrl = user?.avatarUrl || (user?.id ? avatarProxyUrl(user.id, user.avatar, 256) : null);
 
   const wins = profile?.w ?? 0;
   const losses = profile?.l ?? 0;
