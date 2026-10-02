@@ -4,7 +4,7 @@ import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
 import AccountMenu from '../components/AccountMenu';
-import { avatarUrl } from '../lib/profiles';
+import { avatarProxyUrl } from '../lib/profiles';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -16,7 +16,7 @@ export async function getServerSideProps({ req }) {
 
 export default function Settings({ user, premium }) {
   const { t, lang } = useLanguage();
-  const avatar = user?.id ? avatarUrl(user.id, user.avatar, 256) : null;
+  const avatar = user?.id ? avatarProxyUrl(user.id, user.avatar, 256) : null;
   const status = premium.status === 'active' ? t.premActive : premium.status === 'expired' ? t.premExpired : t.premNone;
   return (
     <div className="shell">
@@ -29,7 +29,7 @@ export default function Settings({ user, premium }) {
       <p className="lede fade-in-up d1">{t.accountSettingsLede}</p>
       <div className="settings-grid fade-in-up d2">
         <section className="panel settings-card"><div className="section-heading"><div><h2>{t.settingsAccountTitle}</h2><p className="lede">{t.profileLede}</p></div></div>
-          <div className="settings-profile"><div className="settings-avatar">{avatar ? <img src={avatar} alt="" /> : user.username.slice(0,1)}</div><div><strong>{user.username}</strong><span>{user.id}</span></div></div>
+          <div className="settings-profile"><div className="settings-avatar">{avatar ? <><img src={avatar} alt="" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling.style.display='grid'; }} /><span style={{display:'none'}}>{user.username.slice(0,1)}</span></> : user.username.slice(0,1)}</div><div><strong>{user.username}</strong><span>{user.id}</span></div></div>
           <div className="settings-facts"><div><span>{t.settingsUsername}</span><strong>{user.username}</strong></div><div><span>{t.settingsDiscordId}</span><strong className="mono">{user.id}</strong></div><div><span>{t.settingsLanguage}</span><strong>{lang === 'ar' ? t.arabic : t.english}</strong></div></div>
           <div className="settings-actions"><a className="btn secondary" href="/profile">{t.settingsOpenProfile}</a></div>
         </section>

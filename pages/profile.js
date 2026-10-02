@@ -6,7 +6,7 @@ import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
 import AccountMenu from '../components/AccountMenu';
-import { avatarUrl } from '../lib/profiles';
+import { avatarProxyUrl } from '../lib/profiles';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -49,7 +49,7 @@ function achievementMeta(key, t) {
 export default function Profile({ user, guildCount, owner, profile }) {
   const { t } = useLanguage();
 
-  const userAvatarUrl = user?.id ? avatarUrl(user.id, user.avatar, 256) : null;
+  const userAvatarUrl = user?.id ? avatarProxyUrl(user.id, user.avatar, 256) : null;
 
   const wins = profile?.w ?? 0;
   const losses = profile?.l ?? 0;
@@ -94,8 +94,8 @@ export default function Profile({ user, guildCount, owner, profile }) {
       <section className="profile-hero fade-in-up d2">
         <div className="profile-hero-main">
           <div className="profile-avatar-wrap">
-            {avatarUrl ? (
-              <img src={userAvatarUrl} alt="" className="profile-avatar profile-avatar-large" />
+            {userAvatarUrl ? (
+              <img src={userAvatarUrl} alt="" className="profile-avatar profile-avatar-large" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'grid'; }} /><div className="profile-avatar profile-avatar-large profile-avatar-fallback" style={{display:'none'}}>{user.username.slice(0, 1)}</div>
             ) : (
               <div className="profile-avatar profile-avatar-large profile-avatar-fallback">{user.username.slice(0, 1)}</div>
             )}
@@ -181,8 +181,8 @@ export default function Profile({ user, guildCount, owner, profile }) {
 
             <div className="profile-showcase">
               <div className="profile-showcase-avatar">
-                {avatarUrl ? (
-                  <img src={userAvatarUrl} alt="" />
+                {userAvatarUrl ? (
+                  <img src={userAvatarUrl} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'grid'; }} /><div style={{display:'none'}}> {user.username.slice(0, 1)} </div>
                 ) : (
                   <div>{user.username.slice(0, 1)}</div>
                 )}

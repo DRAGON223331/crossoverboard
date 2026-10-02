@@ -6,7 +6,7 @@ import { useLanguage } from '../lib/i18n';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import NavBar from '../components/NavBar';
 import AccountMenu from '../components/AccountMenu';
-import { avatarUrl } from '../lib/profiles';
+import { avatarProxyUrl } from '../lib/profiles';
 
 export async function getServerSideProps({ req }) {
   const session = await getSession(req);
@@ -32,8 +32,8 @@ export async function getServerSideProps({ req }) {
 
 export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
   const { t } = useLanguage();
-  const avatarUrl32 = user?.id ? avatarUrl(user.id, user.avatar, 32) : null;
-  const avatarUrl96 = user?.id ? avatarUrl(user.id, user.avatar, 96) : null;
+  const avatarUrl32 = user?.id ? avatarProxyUrl(user.id, user.avatar, 32) : null;
+  const avatarUrl96 = user?.id ? avatarProxyUrl(user.id, user.avatar, 96) : null;
 
   return (
     <div className="shell">
@@ -55,7 +55,7 @@ export default function Servers({ user, guilds, loadError, showOwnerLinks }) {
 
       <Link href="/profile" prefetch className="profile-card profile-card-link fade-in-up d1">
         {avatarUrl96 ? (
-          <img src={avatarUrl96} alt="" className="profile-avatar" />
+          <img src={avatarUrl96} alt="" className="profile-avatar" onError={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling.style.display='grid'; }} /><div className="profile-avatar profile-avatar-fallback" style={{display:'none'}}>{user.username.slice(0, 1)}</div>
         ) : (
           <div className="profile-avatar profile-avatar-fallback">{user.username.slice(0, 1)}</div>
         )}
