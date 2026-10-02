@@ -2031,3 +2031,31 @@ table.board .wl { color: var(--muted); text-align: right; white-space: nowrap; }
   .member-add { flex-direction: column; }
   .prem-status { flex-direction: column; align-items: flex-start; }
 }
+
+
+/* Personal Premium dashboard */
+.premium-layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:22px;align-items:start}
+.premium-sidebar{display:flex;flex-direction:column;gap:8px;position:sticky;top:20px}
+.premium-sidebar .tab{display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:12px;text-decoration:none}
+.premium-sidebar .tab.active{background:rgba(139,92,246,.14);border:1px solid rgba(139,92,246,.35)}
+.premium-content{min-width:0}
+.personal-premium-card{overflow:hidden}
+.personal-card-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}
+.personal-card-preview{min-height:175px;margin:22px 0;padding:28px;border:1px solid color-mix(in srgb,var(--pc-color) 45%,transparent);border-radius:18px;background:radial-gradient(circle at 80% 20%,color-mix(in srgb,var(--pc-color) 22%,transparent),transparent 38%),linear-gradient(135deg,rgba(20,20,28,.98),rgba(10,10,15,.98));box-shadow:0 0 34px color-mix(in srgb,var(--pc-color) 12%,transparent);display:flex;align-items:center;gap:18px;position:relative;overflow:hidden}
+.personal-card-preview:after{content:"";position:absolute;inset:auto -15% -70% 25%;height:170px;background:var(--pc-color);opacity:.08;filter:blur(40px);transform:rotate(-8deg)}
+.personal-card-avatar{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;font-size:32px;font-weight:800;border:3px solid var(--pc-color);box-shadow:0 0 22px color-mix(in srgb,var(--pc-color) 38%,transparent);background:rgba(255,255,255,.08);z-index:1}
+.personal-card-copy{display:flex;flex-direction:column;gap:6px;z-index:1}
+.personal-card-copy strong{font-size:22px}
+.personal-card-copy span{color:var(--pc-color);font-weight:700}
+.personal-card-badge{margin-left:auto;font-size:36px;z-index:1}
+.personal-color-grid,.personal-badge-grid{display:flex;flex-wrap:wrap;gap:9px}
+.personal-color-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border,rgba(255,255,255,.12));background:rgba(255,255,255,.04);padding:9px 12px;border-radius:10px;cursor:pointer;text-transform:capitalize}
+.personal-color-chip span{width:15px;height:15px;border-radius:50%;background:var(--chip-color);box-shadow:0 0 10px color-mix(in srgb,var(--chip-color) 45%,transparent)}
+.personal-color-chip.active{border-color:var(--chip-color);box-shadow:0 0 0 1px var(--chip-color)}
+.personal-color-chip input{position:absolute;opacity:0;width:1px;height:1px}
+.premium-perk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px}
+.premium-perk-grid>div{padding:18px;border:1px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.025);display:flex;flex-direction:column;gap:5px}
+.premium-perk-grid span{font-size:26px;font-weight:800}
+.premium-perk-grid small{opacity:.65}
+.prem-lock-card span{display:block;opacity:.7;margin:6px 0 14px}
+@media (max-width:800px){.premium-layout{grid-template-columns:1fr}.premium-sidebar{position:static;display:grid;grid-template-columns:1fr 1fr}.premium-sidebar .tab{text-align:center;justify-content:center}.personal-card-head{flex-direction:column}}

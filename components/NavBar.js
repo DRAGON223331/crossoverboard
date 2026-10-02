@@ -16,6 +16,7 @@ export default function NavBar({ active }) {
     { key: 'store', href: '/store', label: t.navStore },
     { key: 'commands', href: '/commands', label: t.navCommands },
     { key: 'profile', href: '/profile', label: t.navProfile },
+    { key: 'premium', href: '/premium', label: '💎 Premium' },
   ];
 
   // Ask Next.js to prefetch all primary dashboard routes as soon as the nav
